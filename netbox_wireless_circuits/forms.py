@@ -180,6 +180,8 @@ class WirelessGlobalSettingsForm(NetBoxModelForm):
             "zabbix_sync_enabled",
             "zabbix_macro_prefix",
             "zabbix_emit_tags",
+            "link_type_tag_enabled",
+            "link_type_tag_template",
             "notes",
             "tags",
         )

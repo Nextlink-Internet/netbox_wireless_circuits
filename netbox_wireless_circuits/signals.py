@@ -107,6 +107,20 @@ def _resync_endpoint(sender, instance, **kwargs):
             logger.warning("wireless zabbix endpoint sync failed: %s", exc)
 
 
+@receiver(post_save, sender=WirelessLicenseProfile)
+def _sync_link_type_tag(sender, instance, **kwargs):
+    """Keep the circuit's link-type NetBox tag in step with radio_configuration."""
+    from .tagging import apply_link_type_tag
+
+    circuit = getattr(instance, "circuit", None)
+    if circuit is None:
+        return
+    try:
+        apply_link_type_tag(circuit, instance, WirelessGlobalSettings.load())
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("wireless: link-type tag sync failed: %s", exc)
+
+
 @receiver(post_save, sender=WirelessGlobalSettings)
 def _resync_all(sender, instance, **kwargs):
     # Prefix / tolerance / enable toggles affect every link.

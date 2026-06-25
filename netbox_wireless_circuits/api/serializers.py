@@ -74,6 +74,7 @@ class WirelessGlobalSettingsSerializer(NetBoxModelSerializer):
         fields = (
             "id", "url", "display", "global_tolerance_db", "tolerance_enabled",
             "zabbix_sync_enabled", "zabbix_macro_prefix", "zabbix_emit_tags",
+            "link_type_tag_enabled", "link_type_tag_template",
             "notes", "tags", "custom_fields", "created", "last_updated",
         )
         brief_fields = ("id", "url", "display", "global_tolerance_db")

@@ -476,6 +476,26 @@ class WirelessGlobalSettings(NetBoxModel):
             "wireless circuit (and its band) for template/trigger targeting."
         ),
     )
+
+    # --- Link-type auto-tagging (NetBox tags) ---
+    link_type_tag_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Auto-tag link type",
+        help_text=(
+            "Apply a NetBox tag to the circuit reflecting its N+0 radio "
+            "configuration (carrier aggregation), e.g. 'link_type: 2+0'."
+        ),
+    )
+    link_type_tag_template = models.CharField(
+        max_length=100,
+        default="link_type: {config}",
+        verbose_name="Link-type tag template",
+        help_text=(
+            "Template for the link-type tag name; '{config}' is replaced by the "
+            "radio configuration (e.g. 2+0). Examples: 'link_type: {config}', "
+            "'{config}', 'MW-{config}'."
+        ),
+    )
     notes = models.TextField(blank=True)
 
     class Meta:
