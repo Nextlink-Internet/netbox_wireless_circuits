@@ -163,11 +163,11 @@ class WirelessPCNImportView(View):
             return render(request, self.template_name, {"stage": "confirm", "form": form})
 
         data = form.cleaned_data["data_json"]
-        # Inject the chosen NetBox sites into the right endpoint before creating.
-        for pidx, eidx, site in form.site_assignments():
+        # Inject the chosen NetBox site/device/interface into each endpoint.
+        for pidx, eidx, chosen in form.endpoint_assignments():
             try:
-                data["paths"][pidx]["endpoints"][eidx]["netbox_site"] = site
-            except (KeyError, IndexError, TypeError):
+                data["paths"][pidx]["endpoints"][eidx].update(chosen)
+            except (KeyError, IndexError, TypeError, AttributeError):
                 pass
 
         # Recover the source PCN PDF stashed in step 1 to attach to each profile.
@@ -361,6 +361,38 @@ class WirelessBandToleranceDeleteView(generic.ObjectDeleteView):
 class WirelessBandToleranceBulkDeleteView(generic.BulkDeleteView):
     queryset = models.WirelessBandTolerance.objects.all()
     table = tables.WirelessBandToleranceTable
+
+
+# ---------------------------------------------------------------------------
+# WirelessAntenna (reusable antenna catalog / "warehouse")
+# ---------------------------------------------------------------------------
+
+class WirelessAntennaView(generic.ObjectView):
+    queryset = models.WirelessAntenna.objects.all()
+
+    def get_extra_context(self, request, instance):
+        return {"endpoints": instance.endpoints.select_related(
+            "wireless_license_profile__circuit"
+        )}
+
+
+class WirelessAntennaListView(generic.ObjectListView):
+    queryset = models.WirelessAntenna.objects.all()
+    table = tables.WirelessAntennaTable
+
+
+class WirelessAntennaEditView(generic.ObjectEditView):
+    queryset = models.WirelessAntenna.objects.all()
+    form = forms.WirelessAntennaForm
+
+
+class WirelessAntennaDeleteView(generic.ObjectDeleteView):
+    queryset = models.WirelessAntenna.objects.all()
+
+
+class WirelessAntennaBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.WirelessAntenna.objects.all()
+    table = tables.WirelessAntennaTable
 
 
 # ---------------------------------------------------------------------------

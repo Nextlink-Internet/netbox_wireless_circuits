@@ -207,6 +207,18 @@ class WirelessAPITests(TestCase):
         self.assertEqual(r.status_code, 201, r.content)
         self.assertEqual(WirelessLLMProvider.objects.count(), 1)
 
+    def test_antenna_create_and_list(self):
+        r = self.client.post(
+            f"{BASE}/wireless-antennas/",
+            {"manufacturer": "RFS", "antenna_code": "64664A", "model": "SC3-190B",
+             "gain_dbi": "43.30", "beamwidth_deg": "1.10"},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 201, r.content)
+        r = self.client.get(f"{BASE}/wireless-antennas/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["count"], 1)
+
     def test_zabbix_surfaces_active_exception(self):
         WirelessTargetException.objects.create(
             wireless_license_profile=self.profile,

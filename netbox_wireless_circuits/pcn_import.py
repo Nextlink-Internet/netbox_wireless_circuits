@@ -16,6 +16,7 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from .models import (
+    WirelessAntenna,
     WirelessCircuitEndpoint,
     WirelessLicenseProfile,
     WirelessModulationTarget,
@@ -32,8 +33,9 @@ PROFILE_FIELDS = {
 }
 ENDPOINT_FIELDS = {
     "side", "pcn_site_name", "county_state", "latitude", "longitude",
-    "tx_frequency_mhz", "antenna_model", "antenna_gain_dbi", "path_azimuth_deg",
-    "radio_model", "polarization",
+    "tx_frequency_mhz", "antenna_code", "antenna_manufacturer", "antenna_model",
+    "antenna_diameter_ft", "antenna_gain_dbi", "antenna_beamwidth_deg",
+    "path_azimuth_deg", "radio_model", "polarization",
 }
 TARGET_FIELDS = {
     "direction", "modulation", "data_rate_kbps", "max_power_dbm", "eirp_dbm",
@@ -62,6 +64,34 @@ def _filtered(d, allowed):
         k: v for k, v in (d or {}).items()
         if k in allowed and v not in (None, "")
     }
+
+
+def resolve_antenna(ep):
+    """
+    Get-or-create the catalog antenna for an endpoint dict, keyed by
+    (manufacturer, antenna_code). Auto-creates a stub from the extracted antenna
+    fields the first time a code is seen; never overwrites an existing entry (the
+    operator may have enriched it). Returns the WirelessAntenna or None when no
+    antenna code was extracted.
+    """
+    code = (ep.get("antenna_code") or "").strip()
+    if not code:
+        return None
+    manufacturer = (ep.get("antenna_manufacturer") or "").strip()
+    defaults = {}
+    for src, dst in (
+        ("antenna_model", "model"),
+        ("antenna_diameter_ft", "diameter_ft"),
+        ("antenna_gain_dbi", "gain_dbi"),
+        ("antenna_beamwidth_deg", "beamwidth_deg"),
+    ):
+        value = ep.get(src)
+        if value not in (None, ""):
+            defaults[dst] = value
+    antenna, _ = WirelessAntenna.objects.get_or_create(
+        manufacturer=manufacturer, antenna_code=code, defaults=defaults
+    )
+    return antenna
 
 
 def ensure_circuit_termination(circuit, term_side, site):
@@ -172,12 +202,19 @@ def create_from_extraction(circuit, data, pdf_bytes=None, pdf_name=None):
         circuit=circuit, created_via_import=True, **prof_fields
     )
     for ep in (data.get("endpoints") or []):
+        ep = ep or {}
         fields = _filtered(ep, ENDPOINT_FIELDS)
-        # netbox_site is a Site instance injected by the wizard (a per-side
-        # dropdown), not part of the JSON whitelist; carry it through if present.
-        site = (ep or {}).get("netbox_site")
-        if site:
-            fields["netbox_site"] = site
+        # netbox_site/device/interface are model instances injected by the wizard
+        # (per-side dropdowns), not part of the JSON whitelist; carry through.
+        for key in ("netbox_site", "netbox_device", "netbox_interface"):
+            value = ep.get(key)
+            if value:
+                fields[key] = value
+        # Auto-create / link the reusable catalog antenna from the extracted code.
+        antenna = resolve_antenna(ep)
+        if antenna:
+            fields["antenna"] = antenna
+        site = ep.get("netbox_site")
         side = fields.get("side")
         if side:
             WirelessCircuitEndpoint.objects.create(

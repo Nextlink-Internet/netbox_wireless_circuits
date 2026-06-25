@@ -6,12 +6,14 @@ from django.test import TestCase, override_settings
 from circuits.models import Circuit, CircuitType, Provider
 from dcim.models import Site
 
-from netbox_wireless_circuits.models import WirelessLicenseProfile
+from netbox_wireless_circuits.models import WirelessAntenna, WirelessLicenseProfile
 from netbox_wireless_circuits.pcn_import import (
     create_circuit_and_profile,
     create_from_extraction,
     create_paths,
 )
+
+from .test_zabbix import make_device
 
 
 class PCNImportMappingTests(TestCase):
@@ -100,6 +102,46 @@ class PCNImportMappingTests(TestCase):
                 circuit=self.circuit, term_side="Z"
             ).exists()
         )
+
+    def test_import_auto_creates_and_links_antenna(self):
+        data = {
+            "profile": {},
+            "endpoints": [
+                {"side": "A", "antenna_code": "64664A", "antenna_manufacturer": "RFS",
+                 "antenna_model": "SC3-190B", "antenna_gain_dbi": 43.3,
+                 "antenna_beamwidth_deg": 1.1},
+                {"side": "Z", "antenna_code": "64664A", "antenna_manufacturer": "RFS"},
+            ],
+        }
+        profile = create_from_extraction(self.circuit, data)
+        # Both sides share one catalog entry (manufacturer + code key).
+        antennas = WirelessAntenna.objects.filter(antenna_code="64664A")
+        self.assertEqual(antennas.count(), 1)
+        ant = antennas.first()
+        self.assertEqual(ant.manufacturer, "RFS")
+        self.assertEqual(ant.model, "SC3-190B")
+        self.assertEqual(profile.endpoints.get(side="A").antenna, ant)
+        self.assertEqual(profile.endpoints.get(side="Z").antenna, ant)
+
+    def test_import_reuses_existing_antenna_without_overwriting(self):
+        existing = WirelessAntenna.objects.create(
+            manufacturer="RFS", antenna_code="64664A", model="ENRICHED",
+        )
+        data = {"profile": {}, "endpoints": [
+            {"side": "A", "antenna_code": "64664A", "antenna_manufacturer": "RFS",
+             "antenna_model": "SHOULD-NOT-OVERWRITE"},
+        ]}
+        profile = create_from_extraction(self.circuit, data)
+        existing.refresh_from_db()
+        self.assertEqual(existing.model, "ENRICHED")  # operator data preserved
+        self.assertEqual(WirelessAntenna.objects.filter(antenna_code="64664A").count(), 1)
+        self.assertEqual(profile.endpoints.get(side="A").antenna, existing)
+
+    def test_import_injects_netbox_device(self):
+        device = make_device("ANT")
+        data = {"profile": {}, "endpoints": [{"side": "A", "netbox_device": device}]}
+        profile = create_from_extraction(self.circuit, data)
+        self.assertEqual(profile.endpoints.get(side="A").netbox_device, device)
 
     def test_skeleton_like_minimal(self):
         profile = create_from_extraction(self.circuit, {"profile": {}})

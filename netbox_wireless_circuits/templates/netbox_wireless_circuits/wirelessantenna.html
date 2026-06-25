@@ -1,0 +1,51 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Antenna</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Manufacturer</th><td>{{ object.manufacturer|placeholder }}</td></tr>
+        <tr><th scope="row">Antenna code</th><td>{{ object.antenna_code }}</td></tr>
+        <tr><th scope="row">Model</th><td>{{ object.model|placeholder }}</td></tr>
+        <tr><th scope="row">Diameter (ft)</th><td>{{ object.diameter_ft|placeholder }}</td></tr>
+        <tr><th scope="row">Diameter (m)</th><td>{{ object.diameter_m|placeholder }}</td></tr>
+        <tr><th scope="row">Gain (dBi)</th><td>{{ object.gain_dbi|placeholder }}</td></tr>
+        <tr><th scope="row">Beamwidth (°)</th><td>{{ object.beamwidth_deg|placeholder }}</td></tr>
+        <tr><th scope="row">Polarization</th><td>{{ object.polarization|placeholder }}</td></tr>
+        <tr><th scope="row">Frequency range</th><td>{{ object.frequency_range|placeholder }}</td></tr>
+      </table>
+    </div>
+    {% if object.notes %}
+    <div class="card">
+      <h5 class="card-header">Notes</h5>
+      <div class="card-body">{{ object.notes|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+    {% include 'inc/panels/tags.html' %}
+  </div>
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Used by</h5>
+      {% if endpoints %}
+      <table class="table table-hover">
+        <thead><tr><th>Circuit</th><th>Side</th><th>Site name</th></tr></thead>
+        <tbody>
+          {% for ep in endpoints %}
+          <tr>
+            <td>{{ ep.wireless_license_profile.circuit|linkify }}</td>
+            <td>{{ ep.get_side_display }}</td>
+            <td>{{ ep.pcn_site_name|placeholder }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="card-body text-muted">No endpoints reference this antenna yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

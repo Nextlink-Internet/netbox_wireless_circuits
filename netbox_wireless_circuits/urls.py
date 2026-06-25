@@ -264,6 +264,44 @@ urlpatterns = [
         kwargs={"model": models.WirelessBandTolerance},
     ),
 
+    # --- Antennas (reusable antenna catalog) ---
+    path(
+        "antennas/",
+        views.WirelessAntennaListView.as_view(),
+        name="wirelessantenna_list",
+    ),
+    path(
+        "antennas/add/",
+        views.WirelessAntennaEditView.as_view(),
+        name="wirelessantenna_add",
+    ),
+    path(
+        "antennas/delete/",
+        views.WirelessAntennaBulkDeleteView.as_view(),
+        name="wirelessantenna_bulk_delete",
+    ),
+    path(
+        "antennas/<int:pk>/",
+        views.WirelessAntennaView.as_view(),
+        name="wirelessantenna",
+    ),
+    path(
+        "antennas/<int:pk>/edit/",
+        views.WirelessAntennaEditView.as_view(),
+        name="wirelessantenna_edit",
+    ),
+    path(
+        "antennas/<int:pk>/delete/",
+        views.WirelessAntennaDeleteView.as_view(),
+        name="wirelessantenna_delete",
+    ),
+    path(
+        "antennas/<int:pk>/changelog/",
+        ObjectChangeLogView.as_view(),
+        name="wirelessantenna_changelog",
+        kwargs={"model": models.WirelessAntenna},
+    ),
+
     # --- Target Exceptions ---
     path(
         "target-exceptions/",

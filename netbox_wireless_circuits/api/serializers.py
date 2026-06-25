@@ -4,6 +4,7 @@ from circuits.api.serializers import CircuitSerializer
 from netbox.api.serializers import NetBoxModelSerializer
 
 from ..models import (
+    WirelessAntenna,
     WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
@@ -23,6 +24,7 @@ __all__ = (
     "WirelessTargetExceptionSerializer",
     "WirelessLLMSettingsSerializer",
     "WirelessLLMProviderSerializer",
+    "WirelessAntennaSerializer",
 )
 
 
@@ -35,7 +37,7 @@ class WirelessCircuitEndpointSerializer(NetBoxModelSerializer):
             "pcn_site_name", "county_state", "latitude", "longitude",
             "ground_elevation_m", "ground_elevation_ft", "asr_number",
             "structure_height_agl_m", "structure_height_agl_ft",
-            "path_azimuth_deg", "antenna_code", "antenna_manufacturer",
+            "path_azimuth_deg", "antenna", "antenna_code", "antenna_manufacturer",
             "antenna_model", "antenna_diameter_ft", "antenna_gain_dbi",
             "antenna_beamwidth_deg", "antenna_tilt_deg",
             "centerline_agl_m", "centerline_agl_ft",
@@ -88,6 +90,18 @@ class WirelessBandToleranceSerializer(NetBoxModelSerializer):
             "notes", "tags", "custom_fields", "created", "last_updated",
         )
         brief_fields = ("id", "url", "display", "frequency_band", "tolerance_db")
+
+
+class WirelessAntennaSerializer(NetBoxModelSerializer):
+    class Meta:
+        model = WirelessAntenna
+        fields = (
+            "id", "url", "display", "manufacturer", "antenna_code", "model",
+            "diameter_ft", "diameter_m", "gain_dbi", "beamwidth_deg",
+            "polarization", "frequency_range", "notes",
+            "tags", "custom_fields", "created", "last_updated",
+        )
+        brief_fields = ("id", "url", "display", "manufacturer", "antenna_code")
 
 
 class WirelessLLMSettingsSerializer(NetBoxModelSerializer):

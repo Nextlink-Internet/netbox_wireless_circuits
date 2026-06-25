@@ -64,19 +64,26 @@
           {% render_field form.provider %}
           {% render_field form.circuit_type %}
 
-          {% if form.site_fields %}
+          {% if form.endpoint_rows %}
           <div class="card mt-3 mb-3">
-            <h6 class="card-header">Assign each side to a NetBox site (optional)</h6>
+            <h6 class="card-header">Map each side to NetBox (optional)</h6>
             <div class="card-body">
               <p class="text-muted mb-3">
-                One dropdown per side of each path. A side is pre-selected when the
-                extracted site name exactly matches an existing NetBox site; otherwise
-                leave it blank. Assigning a site also creates that circuit's native
-                <strong>A/Z termination</strong> at the site (not just the RF record).
-                You can always set or change these later on each circuit.
+                Per side of each path: link a NetBox <strong>site</strong>, the
+                <strong>radio device</strong>, and its <strong>interface</strong>.
+                Site is pre-selected when the extracted name matches; device is
+                filtered by the chosen site, interface by the chosen device.
+                Assigning a site also creates that circuit's native
+                <strong>A/Z termination</strong> at the site. All optional and
+                editable later on each circuit's endpoint.
               </p>
-              {% for f in form.site_fields %}
-                {% render_field f %}
+              {% for row in form.endpoint_rows %}
+                <fieldset class="mb-3">
+                  <legend class="h6 text-muted">{{ row.label }}</legend>
+                  {% render_field row.site %}
+                  {% render_field row.device %}
+                  {% render_field row.interface %}
+                </fieldset>
               {% endfor %}
             </div>
           </div>

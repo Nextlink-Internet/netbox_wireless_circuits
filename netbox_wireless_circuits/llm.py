@@ -108,8 +108,10 @@ Return a single JSON object (no prose, no markdown fences) shaped as:
       "endpoints": [
         { "side": "A"|"Z", "pcn_site_name": str|null, "county_state": str|null,
           "latitude": number|null, "longitude": number|null,
-          "tx_frequency_mhz": number|null, "antenna_model": str|null,
-          "antenna_gain_dbi": number|null, "path_azimuth_deg": number|null,
+          "tx_frequency_mhz": number|null, "antenna_code": str|null,
+          "antenna_manufacturer": str|null, "antenna_model": str|null,
+          "antenna_diameter_ft": number|null, "antenna_gain_dbi": number|null,
+          "antenna_beamwidth_deg": number|null, "path_azimuth_deg": number|null,
           "radio_model": str|null, "polarization": str|null }
       ],
       "modulation_targets": [

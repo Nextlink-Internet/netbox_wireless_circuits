@@ -7,6 +7,7 @@ from utilities.forms.fields import CSVChoiceField, CSVModelChoiceField, DynamicM
 
 from .choices import FrequencyBandChoices, ModulationChoices, ModulationDirectionChoices
 from .models import (
+    WirelessAntenna,
     WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
@@ -23,6 +24,7 @@ __all__ = (
     "WirelessModulationTargetForm",
     "WirelessGlobalSettingsForm",
     "WirelessBandToleranceForm",
+    "WirelessAntennaForm",
     "WirelessTargetExceptionForm",
     "WirelessLLMSettingsForm",
     "WirelessLLMProviderForm",
@@ -91,6 +93,11 @@ class WirelessCircuitEndpointForm(NetBoxModelForm):
         label="Interface",
         query_params={"device_id": "$netbox_device"},
     )
+    antenna = DynamicModelChoiceField(
+        queryset=WirelessAntenna.objects.all(),
+        required=False,
+        label="Antenna (catalog)",
+    )
 
     class Meta:
         model = WirelessCircuitEndpoint
@@ -110,6 +117,7 @@ class WirelessCircuitEndpointForm(NetBoxModelForm):
             "structure_height_agl_m",
             "structure_height_agl_ft",
             "path_azimuth_deg",
+            "antenna",
             "antenna_code",
             "antenna_manufacturer",
             "antenna_model",
@@ -223,6 +231,24 @@ class WirelessBandToleranceForm(NetBoxModelForm):
         )
 
 
+class WirelessAntennaForm(NetBoxModelForm):
+    class Meta:
+        model = WirelessAntenna
+        fields = (
+            "manufacturer",
+            "antenna_code",
+            "model",
+            "diameter_ft",
+            "diameter_m",
+            "gain_dbi",
+            "beamwidth_deg",
+            "polarization",
+            "frequency_range",
+            "notes",
+            "tags",
+        )
+
+
 class WirelessTargetExceptionForm(NetBoxModelForm):
     wireless_license_profile = DynamicModelChoiceField(
         queryset=WirelessLicenseProfile.objects.all(),
@@ -261,6 +287,14 @@ def pcn_site_field_key(pidx, eidx):
     return f"site_p{pidx}_e{eidx}"
 
 
+def pcn_device_field_key(pidx, eidx):
+    return f"device_p{pidx}_e{eidx}"
+
+
+def pcn_interface_field_key(pidx, eidx):
+    return f"iface_p{pidx}_e{eidx}"
+
+
 class WirelessPCNConfirmForm(forms.Form):
     """
     Step 2: choose the shared provider/type, optionally assign each side of each
@@ -292,30 +326,65 @@ class WirelessPCNConfirmForm(forms.Form):
 
     def __init__(self, *args, endpoint_specs=None, **kwargs):
         super().__init__(*args, **kwargs)
-        # (field_name, pidx, eidx) for each dynamically-added Site dropdown.
-        self._site_fields = []
+        # One row of (Site, Device, Interface) dropdowns per endpoint, built
+        # dynamically (the path/endpoint count is only known after extraction).
+        # Device is filtered by the chosen Site, Interface by the chosen Device.
+        self._endpoint_rows = []
         for spec in (endpoint_specs or []):
-            key = pcn_site_field_key(spec["pidx"], spec["eidx"])
-            self.fields[key] = DynamicModelChoiceField(
-                queryset=Site.objects.all(),
-                required=False,
-                label=spec["label"],
+            pidx, eidx = spec["pidx"], spec["eidx"]
+            site_key = pcn_site_field_key(pidx, eidx)
+            device_key = pcn_device_field_key(pidx, eidx)
+            iface_key = pcn_interface_field_key(pidx, eidx)
+            self.fields[site_key] = DynamicModelChoiceField(
+                queryset=Site.objects.all(), required=False, label="Site",
                 initial=spec.get("initial"),
-                help_text="Optional — link this side of the path to a NetBox site.",
+                help_text="Optional — link this side to a NetBox site.",
             )
-            self._site_fields.append((key, spec["pidx"], spec["eidx"]))
+            self.fields[device_key] = DynamicModelChoiceField(
+                queryset=Device.objects.all(), required=False, label="Radio device",
+                query_params={"site_id": f"${site_key}"},
+                help_text="Optional — the radio's NetBox device.",
+            )
+            self.fields[iface_key] = DynamicModelChoiceField(
+                queryset=Interface.objects.all(), required=False, label="Interface",
+                query_params={"device_id": f"${device_key}"},
+            )
+            self._endpoint_rows.append({
+                "label": spec["label"], "pidx": pidx, "eidx": eidx,
+                "site_key": site_key, "device_key": device_key, "iface_key": iface_key,
+            })
 
     @property
-    def site_fields(self):
-        """Bound Site dropdown fields, for explicit rendering in the template."""
-        return [self[name] for name, _p, _e in self._site_fields]
+    def endpoint_rows(self):
+        """Bound (label, site, device, interface) field rows for the template."""
+        return [
+            {
+                "label": r["label"],
+                "site": self[r["site_key"]],
+                "device": self[r["device_key"]],
+                "interface": self[r["iface_key"]],
+            }
+            for r in self._endpoint_rows
+        ]
 
-    def site_assignments(self):
-        """Yield ``(pidx, eidx, site)`` for every side the operator chose."""
-        for name, pidx, eidx in self._site_fields:
-            site = self.cleaned_data.get(name)
+    def endpoint_assignments(self):
+        """
+        Yield ``(pidx, eidx, {netbox_site, netbox_device, netbox_interface})`` for
+        every endpoint where the operator chose at least one object.
+        """
+        for r in self._endpoint_rows:
+            chosen = {}
+            site = self.cleaned_data.get(r["site_key"])
+            device = self.cleaned_data.get(r["device_key"])
+            interface = self.cleaned_data.get(r["iface_key"])
             if site:
-                yield pidx, eidx, site
+                chosen["netbox_site"] = site
+            if device:
+                chosen["netbox_device"] = device
+            if interface:
+                chosen["netbox_interface"] = interface
+            if chosen:
+                yield r["pidx"], r["eidx"], chosen
 
     def clean_data_json(self):
         import json

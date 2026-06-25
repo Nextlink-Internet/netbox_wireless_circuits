@@ -25,6 +25,7 @@ __all__ = (
     "WirelessTargetException",
     "WirelessLLMSettings",
     "WirelessLLMProvider",
+    "WirelessAntenna",
 )
 
 
@@ -236,6 +237,17 @@ class WirelessCircuitEndpoint(NetBoxModel):
     )
 
     # Antenna
+    # Optional link to a reusable antenna in the catalog ("warehouse"). The
+    # per-endpoint antenna_* fields below remain (populated from import) for the
+    # path-specific record; the catalog holds the shared make/model spec.
+    antenna = models.ForeignKey(
+        to="WirelessAntenna",
+        on_delete=models.SET_NULL,
+        related_name="endpoints",
+        blank=True,
+        null=True,
+        help_text="Reusable antenna make/model from the antenna catalog.",
+    )
     path_azimuth_deg = models.DecimalField(
         max_digits=7, decimal_places=3, blank=True, null=True,
         verbose_name="Path azimuth (°)",
@@ -744,3 +756,61 @@ class WirelessLLMProvider(NetBoxModel):
 
     def get_provider_color(self):
         return LLMProviderChoices.colors.get(self.provider)
+
+
+class WirelessAntenna(NetBoxModel):
+    """
+    Catalog ("warehouse") of reusable antenna make/models. Endpoints reference an
+    entry instead of (or alongside) their free-text antenna fields. The PCN
+    importer auto-creates a stub here, keyed by manufacturer + antenna code, when
+    it sees an antenna not already in the catalog; the operator then enriches it.
+    """
+
+    manufacturer = models.CharField(max_length=200, blank=True)
+    antenna_code = models.CharField(
+        max_length=100,
+        help_text="Vendor antenna code / part number, e.g. 64664A.",
+    )
+    model = models.CharField(max_length=200, blank=True)
+    diameter_ft = models.DecimalField(
+        max_digits=7, decimal_places=3, blank=True, null=True,
+        verbose_name="Diameter (ft)",
+    )
+    diameter_m = models.DecimalField(
+        max_digits=7, decimal_places=3, blank=True, null=True,
+        verbose_name="Diameter (m)",
+    )
+    gain_dbi = models.DecimalField(
+        max_digits=7, decimal_places=3, blank=True, null=True,
+        verbose_name="Gain (dBi)",
+    )
+    beamwidth_deg = models.DecimalField(
+        max_digits=7, decimal_places=3, blank=True, null=True,
+        verbose_name="Beamwidth (°)",
+    )
+    polarization = models.CharField(max_length=50, blank=True)
+    frequency_range = models.CharField(
+        max_length=100, blank=True,
+        help_text="Operating frequency range, e.g. '17.7-19.7 GHz'.",
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("manufacturer", "antenna_code")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["manufacturer", "antenna_code"],
+                name="wwc_antenna_unique_mfr_code",
+            ),
+        ]
+        verbose_name = "Wireless Antenna"
+        verbose_name_plural = "Wireless Antennas"
+
+    def __str__(self):
+        label = self.antenna_code or self.model or "antenna"
+        return f"{self.manufacturer} {label}".strip()
+
+    def get_absolute_url(self):
+        return reverse(
+            "plugins:netbox_wireless_circuits:wirelessantenna", args=[self.pk]
+        )

@@ -16,6 +16,7 @@ from ..filtersets import (
     WirelessTargetExceptionFilterSet,
 )
 from ..models import (
+    WirelessAntenna,
     WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
@@ -26,6 +27,7 @@ from ..models import (
     WirelessTargetException,
 )
 from .serializers import (
+    WirelessAntennaSerializer,
     WirelessBandToleranceSerializer,
     WirelessCircuitEndpointSerializer,
     WirelessGlobalSettingsSerializer,
@@ -209,6 +211,11 @@ class WirelessTargetExceptionViewSet(NetBoxModelViewSet):
 class WirelessBandToleranceViewSet(NetBoxModelViewSet):
     queryset = WirelessBandTolerance.objects.prefetch_related("tags")
     serializer_class = WirelessBandToleranceSerializer
+
+
+class WirelessAntennaViewSet(NetBoxModelViewSet):
+    queryset = WirelessAntenna.objects.prefetch_related("tags")
+    serializer_class = WirelessAntennaSerializer
 
 
 class WirelessLLMSettingsViewSet(NetBoxModelViewSet):

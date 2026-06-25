@@ -3,6 +3,7 @@ import django_tables2 as tables
 from netbox.tables import NetBoxTable, columns
 
 from .models import (
+    WirelessAntenna,
     WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessLicenseProfile,
@@ -136,6 +137,25 @@ class WirelessBandToleranceTable(NetBoxTable):
         )
         default_columns = ("frequency_band", "tolerance_db", "enabled")
         order_by = ("frequency_band",)
+
+
+class WirelessAntennaTable(NetBoxTable):
+    antenna_code = tables.Column(linkify=True)
+    manufacturer = tables.Column()
+
+    class Meta(NetBoxTable.Meta):
+        model = WirelessAntenna
+        fields = (
+            "pk", "id", "manufacturer", "antenna_code", "model",
+            "diameter_ft", "diameter_m", "gain_dbi", "beamwidth_deg",
+            "polarization", "frequency_range",
+            "created", "last_updated",
+        )
+        default_columns = (
+            "manufacturer", "antenna_code", "model", "diameter_ft",
+            "gain_dbi", "beamwidth_deg",
+        )
+        order_by = ("manufacturer", "antenna_code")
 
 
 class WirelessLLMProviderTable(NetBoxTable):
