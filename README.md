@@ -79,6 +79,8 @@ system does the math and raises the alarms.
 - Ships **CSV import** for bulk-loading profiles and modulation ladders.
 - **Auto-tags each circuit** with its N+0 radio configuration (e.g.
   `link_type: 2+0`) so links are filterable by type in the core Circuits list.
+- Maintains a reusable **antenna catalog ("warehouse")** of make/models that
+  endpoints can reference; the PCN importer auto-populates it as it sees antennas.
 
 ---
 
@@ -169,7 +171,8 @@ Global Settings. Without nbxsync, every other feature works unchanged.
 
 Everything the plugin adds lives under the core **Circuits** menu, in a
 **Wireless Circuits** group: *Wireless License Profiles*, *Import from PCN PDF*,
-*Target Exceptions*, *LLM Providers*, *LLM Settings*, *Global Settings*.
+*Antennas*, *Target Exceptions*, *Band Tolerances*, *LLM Providers*,
+*Available LLM Models*, *LLM Settings*, *Global Settings*.
 (Endpoints and modulation targets are **per-circuit** children — you manage them
 from a circuit's *Wireless License* tab / profile page, not from a global list.)
 
@@ -185,7 +188,8 @@ contain multiple paths. See [PCN PDF import](#pcn-pdf-import-llm-assisted).
 1. **Create a native NetBox Circuit** with the appropriate CID and type.
 2. From the Circuit's **`Wireless License`** tab, **add the wireless profile**.
 3. **Add A / Z endpoints** (the tab has *Add Endpoint* buttons) with site /
-   device / interface links and RF data.
+   device / interface links and RF data. Each endpoint can also reference a
+   reusable **Antenna (catalog)** entry (see [Antenna catalog](#antenna-catalog)).
 4. **Add modulation targets** per direction (the profile's modulation panel has
    *Add* buttons), or bulk-load via [CSV import](#csv-import).
 5. Optionally **record exceptions** and set the **global tolerance**.
@@ -424,20 +428,22 @@ layout (appended to the extraction prompt).
    editable `paths[]` structure (one entry per detected path). Set each path's
    **`cid`** and correct anything the model missed. *Nothing is saved yet.*
 
-   This step also shows a card titled **"Assign each side to a NetBox site
-   (optional)"** with one Site dropdown per side (A/Z) of every extracted path.
-   These dropdowns are built dynamically once extraction reveals how many paths
-   there are. Assignment is **optional**: a side is **pre-selected** when its
-   extracted `pcn_site_name` exactly matches (case-insensitive) an existing
-   NetBox Site name, otherwise it's left blank. Assigning a Site to a side does
-   **two** things: (a) it sets the plugin's `WirelessCircuitEndpoint.netbox_site`
-   (the RF record), and (b) it creates or updates that circuit's **native NetBox
-   `CircuitTermination`** for that side (A or Z), terminated to the Site — so the
-   core Circuit's Termination A/Z is populated, not just the RF record. This is
-   idempotent: one termination per side, reused on re-import. Leaving a side
-   blank leaves that endpoint's site **null** and creates **no** termination for
-   that side. You can always set or change the site later on each
-   circuit/endpoint.
+   This step also shows a card with a **per-side mapping row** for each side
+   (A/Z) of every extracted path, offering **Site**, **Radio device**, and
+   **Interface** dropdowns. The device list is filtered by the chosen Site and
+   the interface list by the chosen device. These rows are built dynamically once
+   extraction reveals how many paths there are. Mapping is **optional**: a side's
+   Site is **pre-selected** when its extracted `pcn_site_name` exactly matches
+   (case-insensitive) an existing NetBox Site name, otherwise it's left blank.
+   Any chosen object is written onto the plugin's
+   `WirelessCircuitEndpoint.netbox_site` / `netbox_device` / `netbox_interface`
+   (the RF record), and assigning a **Site** additionally creates or updates that
+   circuit's **native NetBox `CircuitTermination`** for that side (A or Z),
+   terminated to the Site — so the core Circuit's Termination A/Z is populated,
+   not just the RF record. This is idempotent: one termination per side, reused on
+   re-import. Leaving a side's fields blank leaves those links **null** and creates
+   **no** termination for that side. You can always set or change them later on
+   each circuit/endpoint.
 3. Click **Create** — each path becomes a circuit + wireless profile + A/Z
    endpoints + modulation targets (with any chosen sites applied), created
    **atomically**.
@@ -489,6 +495,35 @@ configuration badge plus the carrier count) and in the profile list table, and
 exposed in the [REST API](#rest-api). The profile detail also shows the
 **aggregate expected throughput** per direction — the top alarm-enabled
 modulation's per-carrier data rate × `carrier_count`.
+
+#### Antenna catalog auto-population
+
+The extractor also reads each side's antenna details (`antenna_code`,
+`antenna_manufacturer`, `antenna_model`, `antenna_diameter_ft`,
+`antenna_gain_dbi`, `antenna_beamwidth_deg`). On create, the importer
+**get-or-creates** a catalog entry keyed by **manufacturer + antenna code** and
+links it to the endpoint's `antenna` field. The first time a code is seen it
+stubs out a catalog entry from the extracted values; if the entry already exists
+it is **left untouched** (never overwritten), so operator-enriched make/model
+details survive re-imports. See [Antenna catalog](#antenna-catalog) below.
+
+### Antenna catalog
+
+The **antenna catalog** ("warehouse") is a reusable list of antenna make/models
+(**Wireless Circuits → Antennas**), each carrying manufacturer, antenna code,
+model, diameter (ft / m), gain (dBi), beamwidth, polarization, frequency range,
+and notes. Entries are **unique on (manufacturer, antenna code)**.
+
+- Each **endpoint** can reference one catalog entry via its **Antenna (catalog)**
+  picker on the endpoint edit form. This is **additive**: the per-endpoint
+  free-text `antenna_*` fields remain for the path-specific record, while the
+  catalog holds the shared spec.
+- The PCN importer **auto-creates and links** a catalog entry the first time it
+  sees an antenna (see [Antenna catalog auto-population](#antenna-catalog-auto-population)),
+  keyed by manufacturer + antenna code and never overwriting an existing entry.
+- Operators add or refine make/model details in the catalog over time; CRUD is
+  available from the *Antennas* list and via the
+  [REST API](#rest-api) at `wireless-antennas/`.
 
 ### Recommended models for PDF extraction
 
@@ -605,8 +640,12 @@ All endpoints are mounted under `/api/plugins/wireless-circuits/`.
 | `wireless-license-profiles/` | List / retrieve profiles (with nested circuit, endpoints, modulation targets). |
 | `wireless-circuit-endpoints/` | A / Z endpoint RF + site data. |
 | `wireless-modulation-targets/` | Per-direction modulation ladder entries. |
+| `wireless-antennas/` | Reusable antenna catalog ("warehouse") entries. |
 | `wireless-target-exceptions/` | Per-link exceptions (permission-gated). |
+| `wireless-band-tolerances/` | Per-band tolerance rules. |
 | `wireless-global-settings/` | Singleton global settings (permission-gated). |
+| `wireless-llm-settings/` | Singleton PCN importer settings. |
+| `wireless-llm-providers/` | LLM fallback-chain entries. |
 | `wireless-license-profiles/{id}/zabbix/` | **Flattened, monitoring-ready** design intent. |
 
 Authentication uses a standard NetBox API token:
