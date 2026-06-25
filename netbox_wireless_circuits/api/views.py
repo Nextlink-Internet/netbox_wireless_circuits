@@ -141,6 +141,12 @@ class WirelessLicenseProfileViewSet(NetBoxModelViewSet):
             ),
             "top_modulation": top.modulation if top else None,
             "top_modulation_rank": top.modulation_rank if top else None,
+            # Carrier aggregation (N+0): expected aggregate capacity is the top
+            # modulation's per-carrier rate × carrier count, so monitoring sees
+            # the real link throughput, not a single carrier's.
+            "carrier_count": profile.carrier_count or 1,
+            "radio_configuration": profile.radio_configuration or None,
+            "aggregate_data_rate_kbps": profile.aggregate_data_rate_kbps(direction),
             "receiver_threshold_dbm": _decimal_str(profile.receiver_threshold_dbm),
             # Universal allowance (dB) added to each target's margins, plus any
             # active per-link exception. Zabbix uses these to relax/suppress.

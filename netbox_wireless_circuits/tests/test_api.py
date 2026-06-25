@@ -134,6 +134,7 @@ class WirelessAPITests(TestCase):
         expected_keys = {
             "circuit_id", "cid", "band", "direction", "frequency_mhz",
             "top_modulation", "top_modulation_rank", "receiver_threshold_dbm",
+            "carrier_count", "radio_configuration", "aggregate_data_rate_kbps",
             "modulation_targets", "global_tolerance_db", "exception",
         }
         self.assertEqual(set(data.keys()), expected_keys)
@@ -143,6 +144,8 @@ class WirelessAPITests(TestCase):
         self.assertEqual(data["frequency_mhz"], "11200.000")
         self.assertEqual(data["top_modulation"], "4096 QAM")
         self.assertEqual(data["top_modulation_rank"], 100)
+        # carrier_count defaults to 1 when unset.
+        self.assertEqual(data["carrier_count"], 1)
 
         target_keys = {
             "modulation", "modulation_rank", "data_rate_kbps", "max_power_dbm",

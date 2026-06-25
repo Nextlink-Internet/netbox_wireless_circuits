@@ -419,6 +419,25 @@ layout (appended to the extraction prompt).
 If extraction is disabled or every provider fails, the same screen appears with an
 empty skeleton so you can enter the path(s) by hand.
 
+#### Carrier aggregation (N+0)
+
+The extractor also reads the link's **carrier configuration**:
+
+- **`carrier_count`** — the number of distinct bonded RF carriers / channels on
+  the link, counted from the document's *TRANSMIT FREQUENCIES* / channel-plan
+  section (each go/return frequency **pair** is one carrier; a single-channel
+  link is `1`).
+- **`radio_configuration`** — the N+0 aggregation notation (`1+0`, `2+0`, `4+0`).
+  If the document states it, the model returns it; otherwise the importer
+  **derives `{carrier_count}+0`** at create time (assuming an *unprotected*
+  configuration). Edit the profile afterward if the link is actually N+1.
+
+Both fields are editable on the profile, shown on the profile detail page (a
+configuration badge plus the carrier count) and in the profile list table, and
+exposed in the [REST API](#rest-api). The profile detail also shows the
+**aggregate expected throughput** per direction — the top alarm-enabled
+modulation's per-carrier data rate × `carrier_count`.
+
 ### Recommended models for PDF extraction
 
 The source PDFs are **image scans with dense numeric tables**, so use a
@@ -493,6 +512,9 @@ to push each link's expected values to the **receiving radio's Zabbix host** as
   | `{$WL.RSL.WARN}` / `{$WL.RSL.CRIT}` | effective warning / critical RSL |
   | `{$WL.RSL.ADJUSTED}` | agreed RSL from an active exception (if set) |
   | `{$WL.MOD.TOP}` / `{$WL.MOD.TOP_RANK}` | top expected modulation + rank |
+  | `{$WL.CARRIERS}` | number of bonded RF carriers (N+0); always emitted, defaults to `1` |
+  | `{$WL.CONFIG}` | radio configuration notation (e.g. `2+0`); emitted only when set |
+  | `{$WL.THROUGHPUT.EXPECTED_KBPS}` | aggregate expected throughput (top enabled modulation's per-carrier rate × carriers); emitted only when a per-carrier data rate is set |
   | `{$WL.ALARM.SUPPRESS}` | `1` if an active exception suppresses alarms |
   | `{$WL.CID}` | circuit CID |
 
