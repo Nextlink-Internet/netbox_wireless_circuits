@@ -424,6 +424,23 @@ layout (appended to the extraction prompt).
 If extraction is disabled or every provider fails, the same screen appears with an
 empty skeleton so you can enter the path(s) by hand.
 
+#### Deleting wizard-imported circuits and profiles
+
+Because the wizard *creates* the circuit, each profile it produces is flagged
+**`created_via_import = True`** (visible on the profile and in the
+[REST API](#rest-api)). This changes delete behavior:
+
+- **Deleting a wizard-imported profile also deletes its underlying NetBox
+  Circuit** (and that circuit's terminations), since the wizard created the
+  circuit in the first place.
+- **A profile attached to a pre-existing circuit via the manual "Add Wireless
+  License Profile" form has `created_via_import = False`**, so deleting it
+  removes only the profile and leaves the circuit intact.
+- **Deleting the Circuit directly always cascades to the profile** (and its
+  endpoints, modulation targets, and terminations) as before; a guard prevents
+  the profile signal from trying to re-delete the circuit in that case.
+- This applies to **single and bulk deletes**.
+
 #### Carrier aggregation (N+0)
 
 The extractor also reads the link's **carrier configuration**:
