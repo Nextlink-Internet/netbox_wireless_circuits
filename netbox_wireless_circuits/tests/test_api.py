@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 from circuits.models import Circuit, CircuitType, Provider
 
 from netbox_wireless_circuits.models import (
+    WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
@@ -172,6 +173,8 @@ class WirelessAPITests(TestCase):
         self.assertEqual(directions, {"A_TO_Z", "Z_TO_A"})
 
     def test_zabbix_applies_global_tolerance(self):
+        # Clear seeded band rules so the global default (not a band rule) applies.
+        WirelessBandTolerance.objects.all().delete()
         s = WirelessGlobalSettings.load()
         s.global_tolerance_db = Decimal("2")
         s.tolerance_enabled = True

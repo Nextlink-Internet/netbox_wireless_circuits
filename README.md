@@ -212,9 +212,11 @@ rule**, with optional **per-band** overrides:
   Settings** (`global_tolerance_db`), applied to every band that has no specific
   rule. The master `tolerance_enabled` switch disables *all* allowance when off.
 - **Per-band rules** — under **Wireless Circuits → Band Tolerances**, set the
-  allowed dB per license band (e.g. *11 GHz → 2 dB*). Change it later (1.5 dB), or
-  set **0** to require that band to meet target exactly (no allowance). A disabled
-  band rule falls back to the default.
+  allowed dB per license band (e.g. *11 GHz → 1.5 dB*). Change it later, or set
+  **0** to require that band to meet target exactly (no allowance). A disabled
+  band rule falls back to the default. Fresh installs are **seeded with defaults**
+  — 6 GHz → 1 dB, 11 GHz → 1.5 dB, 18 GHz → 1.5 dB, 70/80 GHz → 2 dB — which you
+  can edit or delete.
 
 The effective tolerance for a link resolves as **band rule (if enabled) →
 default → 0**, and is added on top of each modulation target's warning/critical

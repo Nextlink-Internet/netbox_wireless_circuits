@@ -78,6 +78,10 @@ class BandToleranceTests(TestCase):
             circuit=circuit, frequency_band="11 GHz"
         )
 
+    def setUp(self):
+        # Start from a clean slate (install seeds some default band rules).
+        WirelessBandTolerance.objects.all().delete()
+
     def _settings(self, default=Decimal("2"), enabled=True):
         s = WirelessGlobalSettings.load()
         s.global_tolerance_db = default
@@ -177,6 +181,10 @@ class DeviceSyncPlanTests(TestCase):
             warning_margin_db=Decimal("3"), critical_margin_db=Decimal("6"),
             alarm_enabled=True,
         )
+
+    def setUp(self):
+        # Install seeds default band rules; clear so the global default applies.
+        WirelessBandTolerance.objects.all().delete()
 
     def test_plan_macros_and_tags(self):
         settings = WirelessGlobalSettings.load()

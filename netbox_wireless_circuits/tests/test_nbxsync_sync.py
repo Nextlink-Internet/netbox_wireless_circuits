@@ -9,6 +9,7 @@ from unittest import skipUnless
 from circuits.models import Circuit, CircuitType, Provider
 
 from netbox_wireless_circuits.models import (
+    WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
@@ -50,6 +51,10 @@ class NbxsyncMacroSyncTests(TestCase):
 
     def setUp(self):
         from nbxsync.models import ZabbixMacro
+
+        # Install seeds default band rules; clear so the global default (0) applies
+        # and the expected RSL math below is deterministic.
+        WirelessBandTolerance.objects.all().delete()
 
         # Template-owned macro defs are simulated as owner-less ZabbixMacro rows;
         # sync looks them up by macro string regardless of owner.
