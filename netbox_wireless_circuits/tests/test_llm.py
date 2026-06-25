@@ -67,6 +67,35 @@ class DiscoverModelsTests(SimpleTestCase):
                 self.assertEqual(r["models"], [])
 
 
+class MergeEnvFileTests(SimpleTestCase):
+    def _merge(self, *args):
+        from netbox_wireless_circuits.management.commands.configure_llm import merge_env_file
+
+        return merge_env_file(*args)
+
+    def test_adds_to_empty(self):
+        self.assertEqual(self._merge("", "OPENAI_API_KEY", "sk-1"), "OPENAI_API_KEY=sk-1\n")
+
+    def test_replaces_existing_in_place(self):
+        out = self._merge("OPENAI_API_KEY=old\n", "OPENAI_API_KEY", "new")
+        self.assertEqual(out, "OPENAI_API_KEY=new\n")
+
+    def test_preserves_other_keys_and_comments(self):
+        src = "# secrets\nANTHROPIC_API_KEY=a\nGEMINI_API_KEY=g\n"
+        out = self._merge(src, "OPENAI_API_KEY", "o")
+        self.assertIn("ANTHROPIC_API_KEY=a", out)
+        self.assertIn("GEMINI_API_KEY=g", out)
+        self.assertIn("# secrets", out)
+        self.assertIn("OPENAI_API_KEY=o", out)
+
+    def test_replaces_only_target_key(self):
+        src = "ANTHROPIC_API_KEY=a\nOPENAI_API_KEY=old\n"
+        out = self._merge(src, "OPENAI_API_KEY", "new")
+        self.assertIn("ANTHROPIC_API_KEY=a", out)
+        self.assertIn("OPENAI_API_KEY=new", out)
+        self.assertNotIn("old", out)
+
+
 class FailoverTests(SimpleTestCase):
     PDF = b"%PDF-1.7 fake"
 

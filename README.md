@@ -284,7 +284,51 @@ Keys are read from the **environment** or from **`PLUGINS_CONFIG`** — never th
 database, and never shown in the UI (the UI only reports whether a key is
 *present*). Use whichever fits your deployment.
 
-**Option A — environment variables on the NetBox service (recommended).** The
+**Option A — the `configure_llm` wizard (recommended, one command).** A management
+command walks you through the whole setup: pick a provider, choose a model, set a
+rank, and paste the key. The key is written to the systemd environment file (it is
+**never** stored in NetBox's database); the provider row in the fallback chain
+(Step 3) is created/updated for you; and PCN-PDF import (Step 4) and a service
+restart are offered at the end. Run it with `sudo` so it can write the root-owned
+env file and restart the service:
+
+```bash
+sudo /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py configure_llm
+```
+
+What it does, interactively:
+
+1. **Lists the providers** (Anthropic / Google Gemini / OpenAI, with whether each
+   SDK is installed) and lets you pick one by number.
+2. Prompts for the **model identifier** (with a sensible default per provider).
+3. Prompts for the **rank** (`1` = tried first).
+4. Prompts **silently** (no echo) for the **API key**, then writes it to the env
+   file (default `/etc/netbox-wireless-llm.env`, mode `600`) — the same path the
+   `netbox.service.d/llm.conf` drop-in loads via `EnvironmentFile=`. Leaving the
+   prompt blank **keeps the existing key**, and other providers' keys already in
+   the file are **preserved** (it merges, it does not overwrite the file).
+5. Creates or updates the matching **LLM Providers** row in the fallback chain.
+6. Offers to **enable PCN-PDF import**.
+7. Offers to **restart NetBox** (`systemctl restart netbox netbox-rq`) so the key
+   takes effect.
+
+For automation, the same command takes non-interactive flags:
+`--provider`, `--model`, `--rank`, `--key-stdin` (read the key from stdin so it
+stays out of the process arguments), `--env-file`, `--enable-import` /
+`--no-enable-import`, `--restart` / `--no-restart`, and `--no-input` (fail instead
+of prompting). For example:
+
+```bash
+printf '%s' "$ANTHROPIC_API_KEY" | sudo /opt/netbox/venv/bin/python \
+  /opt/netbox/netbox/manage.py configure_llm \
+  --provider anthropic --model claude-haiku-4-5 --rank 1 \
+  --key-stdin --enable-import --restart --no-input
+```
+
+If you prefer to wire the key in by hand, the two options below remain fully
+supported.
+
+**Option B — environment variables on the NetBox service.** The
 importer runs in the web process, so set the keys for the `netbox` systemd
 service with a drop-in:
 
@@ -307,7 +351,7 @@ sudo systemctl restart netbox
 Set only the providers you use. The drop-in is root-readable; restrict it (or use
 an `EnvironmentFile=` with tight permissions) per your security policy.
 
-**Option B — `PLUGINS_CONFIG` in `configuration.py`** (takes precedence over the
+**Option C — `PLUGINS_CONFIG` in `configuration.py`** (takes precedence over the
 bare environment variables):
 
 ```python
@@ -325,6 +369,9 @@ PLUGINS_CONFIG = {
 ```
 
 ### Step 3 — define the provider fallback chain
+
+> If you used the `configure_llm` wizard in Step 2 it already created/updated a row
+> for you; use this section to add **additional** models to the chain.
 
 **Wireless Circuits → LLM Providers → Add** — create one row per model in the
 chain:
