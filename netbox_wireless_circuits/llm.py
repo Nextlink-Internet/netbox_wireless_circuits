@@ -119,6 +119,7 @@ Return a single JSON object (no prose, no markdown fences) shaped as:
           "data_rate_kbps": integer|null, "max_power_dbm": number|null,
           "eirp_dbm": number|null, "expected_rsl_dbm": number|null,
           "emission_designator": str|null, "radio_model": str|null }
+        /* ... one entry per modulation step PER direction; see note below ... */
       ]
     }
   ]
@@ -135,6 +136,19 @@ section (each go/return frequency PAIR is one carrier; e.g. channels "4" and "5"
 => 2 carriers). A single-channel link is 1. ``radio_configuration`` is the
 aggregation notation like "1+0", "2+0", "4+0" if the document states it; otherwise
 leave it null (it will be derived from carrier_count).
+
+CRITICAL — ``modulation_targets`` must be COMPLETE: the datasheet lists the link's
+ADAPTIVE MODULATION LADDER as a multi-row table (the highest modulation such as
+4096 QAM down to the lowest such as QPSK, each row with its own data rate /
+power / EIRP / RSL). Return a SEPARATE entry for EVERY row of that table, for
+BOTH directions — do NOT return only the top (4096 QAM) row. A 10-row table
+therefore yields 10 entries for A_TO_Z and 10 for Z_TO_A (≈20 total per path).
+These tables usually have two sets of "Max Power / EIRP / RSL" columns, one under
+each site: the columns under a site are what that site RECEIVES, so the RSL/power/
+EIRP under side A belong to direction Z_TO_A (Z transmits, A receives) and those
+under side Z belong to A_TO_Z. If only one shared set is given, use it for both
+directions. data_rate_kbps, modulation, and emission_designator are shared by both
+directions for a given row.
 """.strip()
 
 
@@ -230,7 +244,8 @@ def _anthropic_adapter(pdf_bytes, model, api_key, prompt):
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model=model,
-        max_tokens=4096,
+        # Generous ceiling: a full ladder is ~20 modulation rows per path × N paths.
+        max_tokens=8192,
         messages=[{
             "role": "user",
             "content": [

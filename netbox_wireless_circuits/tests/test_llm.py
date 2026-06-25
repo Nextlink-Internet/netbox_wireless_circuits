@@ -40,6 +40,13 @@ class PromptTests(SimpleTestCase):
         self.assertIn("watch the footer table", p)
         self.assertIn("modulation_targets", p)
 
+    def test_requires_full_modulation_ladder(self):
+        # The prompt must tell the model to return every modulation step, both
+        # directions — not just the top (4096 QAM) row.
+        p = build_prompt()
+        self.assertIn("ADAPTIVE MODULATION LADDER", p)
+        self.assertIn("EVERY row", p)
+
 
 class KeyResolutionTests(SimpleTestCase):
     def test_env_fallback(self):
