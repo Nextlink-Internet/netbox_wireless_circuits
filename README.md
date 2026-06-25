@@ -13,6 +13,23 @@ Built and maintained by [Nextlink Internet](https://nextlinkinternet.com).
 
 ---
 
+## Contents
+
+- [Why we built this](#why-we-built-this)
+- [What it does](#what-it-does)
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Using the plugin](#using-the-plugin)
+- [Tolerance and exceptions](#tolerance-and-exceptions)
+- [PCN PDF import (LLM-assisted)](#pcn-pdf-import-llm-assisted) — **how to wire up the LLMs + recommended models**
+- [Zabbix integration via nbxsync](#zabbix-integration-via-nbxsync)
+- [REST API](#rest-api)
+- [CSV import](#csv-import)
+- [Development & testing](#development--testing)
+- [Keeping these docs current](#keeping-these-docs-current)
+
+---
+
 ## Why we built this
 
 Nextlink operates a large fixed-wireless network with a substantial backbone of
@@ -139,17 +156,37 @@ Global Settings. Without nbxsync, every other feature works unchanged.
 
 ---
 
-## Operating model
+## Using the plugin
+
+### One-time setup
 
 1. **Create Circuit Types** (Circuits → Circuit Types), e.g. `Licensed Microwave`,
    `Licensed Millimeter Wave`, optionally `Unlicensed Wireless Backhaul`.
 2. **Create a provider / license context** (Circuits → Providers), e.g.
    `Comsearch`, `FCC/ULS`, or an internal engineering entry.
-3. **Create a native NetBox Circuit** with the appropriate CID and type.
-4. From the Circuit's **`Wireless License`** tab, **add the wireless profile**.
-5. **Add A / Z endpoints** with site / device / interface links and RF data.
-6. **Add modulation targets** manually or via CSV import.
-7. Optionally **record exceptions** and set the **global tolerance**.
+
+Everything the plugin adds lives under the core **Circuits** menu, in a
+**Wireless Circuits** group: *Wireless License Profiles*, *Import from PCN PDF*,
+*Target Exceptions*, *LLM Providers*, *LLM Settings*, *Global Settings*.
+(Endpoints and modulation targets are **per-circuit** children — you manage them
+from a circuit's *Wireless License* tab / profile page, not from a global list.)
+
+### Two ways to create a wireless circuit
+
+**A. Automatically from a PCN PDF (recommended).** Upload the coordination PDF and
+let an LLM extract the fields; review and create. This builds the circuit *and*
+its profile, endpoints, and modulation targets in one go — and handles PDFs that
+contain multiple paths. See [PCN PDF import](#pcn-pdf-import-llm-assisted).
+
+**B. Manually.**
+
+1. **Create a native NetBox Circuit** with the appropriate CID and type.
+2. From the Circuit's **`Wireless License`** tab, **add the wireless profile**.
+3. **Add A / Z endpoints** (the tab has *Add Endpoint* buttons) with site /
+   device / interface links and RF data.
+4. **Add modulation targets** per direction (the profile's modulation panel has
+   *Add* buttons), or bulk-load via [CSV import](#csv-import).
+5. Optionally **record exceptions** and set the **global tolerance**.
 
 ### Status conventions
 
@@ -195,6 +232,158 @@ allowance for the whole link, with:
 The `/zabbix/` endpoint surfaces the **effective** thresholds after applying both
 tolerance and any active exception, so the monitoring system never has to
 re-derive them.
+
+---
+
+## PCN PDF import (LLM-assisted)
+
+Create wireless circuits directly from a **PCN PDF**: the plugin sends the
+document to a vision-capable LLM, extracts the licensed values, and shows an
+**editable preview** for you to review and correct before anything is saved. A
+single PCN PDF usually contains **several path datasheets** (one per hop) — the
+importer returns a `paths[]` list and creates **one circuit per path**.
+
+> **Why an LLM — and why a *vision* model?** Coordination PDFs (e.g. Comsearch
+> "Microwave Path Datasheets") are typically **image-only scans with no text
+> layer** — ordinary text parsers extract nothing. Vision/OCR-capable models read
+> them reliably. The plugin sends the raw PDF bytes to the provider, which does
+> the OCR.
+
+This integration is **optional and disabled by default**; none of it is required
+for the rest of the plugin.
+
+### Step 1 — install one or more provider SDKs
+
+Install only the providers you intend to use (a provider whose SDK is missing is
+simply skipped in the fallback chain). Install into the NetBox virtualenv:
+
+```bash
+source /opt/netbox/venv/bin/activate
+
+pip install 'netbox-wireless-circuits[llm]'   # all three at once, or individually:
+pip install anthropic        # Anthropic / Claude
+pip install google-genai     # Google Gemini
+pip install openai           # OpenAI
+```
+
+### Step 2 — provide API keys (never stored in NetBox)
+
+Keys are read from the **environment** or from **`PLUGINS_CONFIG`** — never the
+database, and never shown in the UI (the UI only reports whether a key is
+*present*). Use whichever fits your deployment.
+
+**Option A — environment variables on the NetBox service (recommended).** The
+importer runs in the web process, so set the keys for the `netbox` systemd
+service with a drop-in:
+
+```bash
+sudo systemctl edit netbox
+```
+
+```ini
+[Service]
+Environment="ANTHROPIC_API_KEY=sk-ant-..."
+Environment="GEMINI_API_KEY=..."
+Environment="OPENAI_API_KEY=sk-..."
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart netbox
+```
+
+Set only the providers you use. The drop-in is root-readable; restrict it (or use
+an `EnvironmentFile=` with tight permissions) per your security policy.
+
+**Option B — `PLUGINS_CONFIG` in `configuration.py`** (takes precedence over the
+bare environment variables):
+
+```python
+import os
+
+PLUGINS_CONFIG = {
+    "netbox_wireless_circuits": {
+        "llm_api_keys": {
+            "anthropic": os.environ.get("ANTHROPIC_API_KEY"),
+            "gemini": os.environ.get("GEMINI_API_KEY"),
+            "openai": os.environ.get("OPENAI_API_KEY"),
+        },
+    },
+}
+```
+
+### Step 3 — define the provider fallback chain
+
+**Wireless Circuits → LLM Providers → Add** — create one row per model in the
+chain:
+
+| Field | Meaning |
+|-------|---------|
+| **Rank** | Order tried; lower first (`1` = primary). |
+| **Provider** | Anthropic / Google Gemini / OpenAI. |
+| **Model** | Model identifier (free text — see recommendations below). |
+| **Enabled** | Whether it participates in the chain. |
+
+At extraction time the importer walks enabled rows by ascending rank and **falls
+through to the next on any failure** (missing SDK, missing key, API error, or
+unparseable output). Each provider's detail page shows whether its **SDK** and
+**API key** are present (✓ / ✗) — without revealing the key.
+
+### Step 4 — enable PDF import
+
+**Wireless Circuits → LLM Settings** → turn on **PCN PDF import enabled**.
+Optionally set a **prompt override** with notes specific to your PCN document
+layout (appended to the extraction prompt).
+
+### Step 5 — import
+
+**Wireless Circuits → Import from PCN PDF**:
+
+1. Upload the PDF and click **Extract**.
+2. The review step shows shared **Provider** / **Circuit type** selectors and an
+   editable `paths[]` structure (one entry per detected path). Set each path's
+   **`cid`** and correct anything the model missed. *Nothing is saved yet.*
+3. Click **Create** — each path becomes a circuit + wireless profile + A/Z
+   endpoints + modulation targets, created **atomically**.
+
+If extraction is disabled or every provider fails, the same screen appears with an
+empty skeleton so you can enter the path(s) by hand.
+
+### Recommended models for PDF extraction
+
+Because the source PDFs are image scans, prefer each provider's **strongest
+vision model** for accuracy on dense datasheets, with cheaper models as
+fallbacks. Recommendations current as of **early 2026** — the Model field is free
+text, so use whatever your account can access:
+
+| Provider | Best accuracy | Balanced / fallback | Notes |
+|----------|---------------|---------------------|-------|
+| **Anthropic** | `claude-opus-4-8` | `claude-sonnet-4-6` | Excellent on dense scanned tables; strong native PDF support. |
+| **Google Gemini** | `gemini-2.5-pro` | `gemini-2.5-flash` | Strong document/vision; large context window. |
+| **OpenAI** | `gpt-4.1` | `gpt-4.1-mini` | Vision-capable; solid cross-vendor fallback. |
+
+A resilient default chain (rank → model):
+
+1. `claude-opus-4-8` (Anthropic) — primary, highest accuracy
+2. `gemini-2.5-pro` (Google Gemini) — cross-vendor fallback
+3. `gpt-4.1` (OpenAI) — last resort
+
+Tips:
+
+- For high volume / cost sensitivity, make a Sonnet / Flash / mini model the
+  primary and reserve the top model as the fallback for hard documents.
+- **Always review the preview.** Treat extraction as a first draft — double-check
+  numeric fields (RSL, power, frequencies) on low-quality scans before creating.
+
+### Troubleshooting
+
+| Symptom | Cause / fix |
+|---------|-------------|
+| Preview is **all `null`** | Extraction is disabled (enable it in *LLM Settings*) or no provider has *both* an SDK and a key — the PDF was never read. Fix the config, or fill in the values manually. |
+| "Automatic extraction failed" banner | Every provider in the chain errored (message shows why). Common causes: missing/invalid key, wrong model id, blocked network egress, rate limit. |
+| A provider is silently skipped | Its SDK isn't installed, or its key isn't set. Check the provider's detail page (SDK ✓ / key ✓). |
+| Extracted values look wrong | Scan quality varies. Correct them in the preview; consider a stronger primary model. |
+| `SerializerNotFound` on save | Should not occur on current versions; ensure the plugin is fully upgraded and migrated. |
 
 ---
 
@@ -389,51 +578,39 @@ python manage.py makemigrations netbox_wireless_circuits
 
 ---
 
-## PCN PDF import (LLM-assisted, optional)
-
-An optional importer extracts a link's fields (band, path budget, endpoints,
-modulation ladder) from a **PCN PDF** using an LLM, for review before saving.
-
-- **Provider chain with fallback** — configure an ordered list of providers
-  under **Wireless Circuits → LLM Providers** (Anthropic / Gemini / OpenAI, each
-  with a model). Extraction tries them by ascending rank and falls through on
-  failure.
-- **Keys are never stored in NetBox** — they come from the environment or
-  `PLUGINS_CONFIG` (`ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY`, or
-  `PLUGINS_CONFIG['netbox_wireless_circuits']['llm_api_keys']`). The UI only shows
-  whether each provider's key and SDK are present.
-- **Optional SDKs** — `pip install netbox-wireless-circuits[llm]`; a provider
-  whose SDK isn't installed is skipped.
-- Enable it under **Wireless Circuits → LLM Settings**, then use **Wireless
-  Circuits → Import from PCN PDF** — a wizard that builds **new circuits** from the
-  document. A PCN PDF often holds **several path datasheets** (one per hop); the
-  importer returns a `paths[]` list and creates **one circuit per path**. Upload
-  the PDF, then on the review step pick the shared **provider** / **circuit type**,
-  set each path's **CID**, and **correct** the extracted values (a manual mapping
-  step — nothing is saved until you confirm). On confirm it creates each circuit,
-  its wireless profile, A/Z endpoints, and modulation targets, atomically. If
-  extraction is disabled or every provider fails, the same screen lets you enter
-  the path(s) manually.
-
-> Note: the source PCN PDFs are often **image-only** (no text layer), so a
-> vision-capable LLM is required — the importer sends the PDF to the provider,
-> which OCRs it. Plain text parsers will not work on these documents.
-
-Endpoints and modulation targets are **per-circuit** and are managed from the
-circuit's **Wireless License** tab / the profile page (add buttons there), not as
-global list menus.
-
 ## Roadmap
 
-- Richer field-by-field preview UI (currently the review/mapping step is an
-  editable structured JSON of the extracted values).
+- Richer field-by-field preview UI for the PCN importer (currently the
+  review/mapping step is an editable structured JSON of the extracted values).
+- Auto-detect and pre-fill the per-path CID from the document.
 
 ---
+
+## Keeping these docs current
+
+This README is kept in sync with the code by a dedicated **Claude Code subagent**
+checked into the repo at [`.claude/agents/docs-maintainer.md`](.claude/agents/docs-maintainer.md).
+It reads the models, choices, settings, navigation, API, and the LLM/PCN modules,
+then reconciles the relevant README sections — the model/choice tables, settings
+and menu items, API endpoints, Zabbix macro list, the PCN import steps, and the
+**recommended-models** table (refreshing the "current as of" date).
+
+After any feature change, run it from Claude Code in this repo:
+
+```
+> Use the docs-maintainer agent to update the README for my recent changes.
+```
+
+It documents only what exists in the code (no speculation), preserves the
+structure and voice, and reports a summary of what it changed. It edits docs
+only — never application code.
 
 ## Contributing
 
 Issues and pull requests are welcome. Please run the test suite before opening a
-PR and keep migrations generated (not hand-edited).
+PR and keep migrations generated (not hand-edited). If your change affects usage,
+settings, the menu, the API, or the LLM/PCN behavior, run the **docs-maintainer**
+agent (above) so the README stays accurate.
 
 ## License
 

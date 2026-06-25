@@ -1,6 +1,10 @@
 __pycache__/
 *.pyc
-.claude/
 *.egg-info/
 build/
 dist/
+
+# Ignore local Claude Code state, but publish the committed project agents.
+.claude/*
+!.claude/agents/
+!.claude/agents/**
