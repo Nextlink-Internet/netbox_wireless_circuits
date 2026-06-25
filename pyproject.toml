@@ -28,6 +28,9 @@ dependencies = []
 #   pip install netbox-wireless-circuits[zabbix]
 [project.optional-dependencies]
 zabbix = ["nbxsync"]
+# LLM-assisted PCN PDF import. Install only the providers you use; the importer
+# skips any provider whose SDK is absent. API keys come from env / PLUGINS_CONFIG.
+llm = ["anthropic", "google-genai", "openai"]
 
 [project.urls]
 Homepage = "https://nextlinkinternet.com"

@@ -389,12 +389,30 @@ python manage.py makemigrations netbox_wireless_circuits
 
 ---
 
+## PCN PDF import (LLM-assisted, optional)
+
+An optional importer extracts a link's fields (band, path budget, endpoints,
+modulation ladder) from a **PCN PDF** using an LLM, for review before saving.
+
+- **Provider chain with fallback** — configure an ordered list of providers
+  under **Wireless Circuits → LLM Providers** (Anthropic / Gemini / OpenAI, each
+  with a model). Extraction tries them by ascending rank and falls through on
+  failure.
+- **Keys are never stored in NetBox** — they come from the environment or
+  `PLUGINS_CONFIG` (`ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY`, or
+  `PLUGINS_CONFIG['netbox_wireless_circuits']['llm_api_keys']`). The UI only shows
+  whether each provider's key and SDK are present.
+- **Optional SDKs** — `pip install netbox-wireless-circuits[llm]`; a provider
+  whose SDK isn't installed is skipped.
+- Enable it under **Wireless Circuits → LLM Settings**.
+
+> Status: the configuration, key resolution, and provider-fallback engine are
+> implemented; the upload → extract → preview → create UI is in progress.
+
 ## Roadmap
 
-- **PCN PDF auto-import** — upload a PCN PDF and use an LLM to extract the band,
-  path budget, and modulation ladder into a previewable, confirmable draft, with
-  an in-app admin configuration to select the provider (Anthropic / Gemini /
-  OpenAI) and a fallback model.
+- Finish the PCN PDF **upload → preview → confirm → populate** flow on top of the
+  provider chain above.
 
 ---
 

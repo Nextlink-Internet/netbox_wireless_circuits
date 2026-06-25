@@ -97,6 +97,20 @@ class ModulationChoices(ChoiceSet):
     ]
 
 
+class LLMProviderChoices(ChoiceSet):
+    """LLM providers supported for PCN PDF extraction."""
+
+    ANTHROPIC = "anthropic"
+    GEMINI = "gemini"
+    OPENAI = "openai"
+
+    CHOICES = [
+        (ANTHROPIC, "Anthropic", "purple"),
+        (GEMINI, "Google Gemini", "blue"),
+        (OPENAI, "OpenAI", "green"),
+    ]
+
+
 # Canonical rank map. Higher rank == higher-order modulation == more throughput.
 # Ranks are intentionally spaced so band-specific ladders can insert values
 # between the canonical entries without renumbering.

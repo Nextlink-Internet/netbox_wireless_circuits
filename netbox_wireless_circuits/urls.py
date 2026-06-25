@@ -166,6 +166,56 @@ urlpatterns = [
         name="wirelessglobalsettings_edit",
     ),
 
+    # --- LLM Settings (singleton; the page is the edit form) ---
+    path(
+        "llm-settings/",
+        views.WirelessLLMSettingsEditView.as_view(),
+        name="wirelessllmsettings",
+    ),
+    path(
+        "llm-settings/edit/",
+        views.WirelessLLMSettingsEditView.as_view(),
+        name="wirelessllmsettings_edit",
+    ),
+
+    # --- LLM Providers (fallback chain) ---
+    path(
+        "llm-providers/",
+        views.WirelessLLMProviderListView.as_view(),
+        name="wirelessllmprovider_list",
+    ),
+    path(
+        "llm-providers/add/",
+        views.WirelessLLMProviderEditView.as_view(),
+        name="wirelessllmprovider_add",
+    ),
+    path(
+        "llm-providers/delete/",
+        views.WirelessLLMProviderBulkDeleteView.as_view(),
+        name="wirelessllmprovider_bulk_delete",
+    ),
+    path(
+        "llm-providers/<int:pk>/",
+        views.WirelessLLMProviderView.as_view(),
+        name="wirelessllmprovider",
+    ),
+    path(
+        "llm-providers/<int:pk>/edit/",
+        views.WirelessLLMProviderEditView.as_view(),
+        name="wirelessllmprovider_edit",
+    ),
+    path(
+        "llm-providers/<int:pk>/delete/",
+        views.WirelessLLMProviderDeleteView.as_view(),
+        name="wirelessllmprovider_delete",
+    ),
+    path(
+        "llm-providers/<int:pk>/changelog/",
+        ObjectChangeLogView.as_view(),
+        name="wirelessllmprovider_changelog",
+        kwargs={"model": models.WirelessLLMProvider},
+    ),
+
     # --- Target Exceptions ---
     path(
         "target-exceptions/",

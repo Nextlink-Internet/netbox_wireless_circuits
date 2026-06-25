@@ -10,6 +10,8 @@ from .models import (
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
+    WirelessLLMProvider,
+    WirelessLLMSettings,
     WirelessModulationTarget,
     WirelessTargetException,
 )
@@ -20,6 +22,8 @@ __all__ = (
     "WirelessModulationTargetForm",
     "WirelessGlobalSettingsForm",
     "WirelessTargetExceptionForm",
+    "WirelessLLMSettingsForm",
+    "WirelessLLMProviderForm",
     "WirelessLicenseProfileImportForm",
     "WirelessModulationTargetImportForm",
 )
@@ -170,6 +174,30 @@ class WirelessGlobalSettingsForm(NetBoxModelForm):
             "zabbix_sync_enabled",
             "zabbix_macro_prefix",
             "zabbix_emit_tags",
+            "notes",
+            "tags",
+        )
+
+
+class WirelessLLMSettingsForm(NetBoxModelForm):
+    class Meta:
+        model = WirelessLLMSettings
+        fields = (
+            "pdf_import_enabled",
+            "prompt_override",
+            "notes",
+            "tags",
+        )
+
+
+class WirelessLLMProviderForm(NetBoxModelForm):
+    class Meta:
+        model = WirelessLLMProvider
+        fields = (
+            "rank",
+            "provider",
+            "model",
+            "enabled",
             "notes",
             "tags",
         )

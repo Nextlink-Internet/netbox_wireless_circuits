@@ -50,6 +50,12 @@ wireless_circuits_group = MenuGroup(
         _item("wirelesscircuitendpoint", _("Wireless Circuit Endpoints"), with_import=False),
         _item("wirelessmodulationtarget", _("Wireless Modulation Targets"), with_import=True),
         _item("wirelesstargetexception", _("Target Exceptions"), with_import=False),
+        _item("wirelessllmprovider", _("LLM Providers"), with_import=False),
+        MenuItem(
+            link=f"plugins:{PLUGIN}:wirelessllmsettings",
+            link_text=_("LLM Settings"),
+            permissions=[f"{PLUGIN}.change_wirelessllmsettings"],
+        ),
         MenuItem(
             link=f"plugins:{PLUGIN}:wirelessglobalsettings",
             link_text=_("Global Settings"),

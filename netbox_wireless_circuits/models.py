@@ -10,6 +10,7 @@ from .choices import (
     DEFAULT_RANKS,
     EndpointSideChoices,
     FrequencyBandChoices,
+    LLMProviderChoices,
     ModulationChoices,
     ModulationDirectionChoices,
     RegistrationStatusChoices,
@@ -21,6 +22,8 @@ __all__ = (
     "WirelessModulationTarget",
     "WirelessGlobalSettings",
     "WirelessTargetException",
+    "WirelessLLMSettings",
+    "WirelessLLMProvider",
 )
 
 
@@ -538,3 +541,97 @@ class WirelessTargetException(NetBoxModel):
         if self.expiry_date and today > self.expiry_date:
             return False
         return True
+
+
+class WirelessLLMSettings(NetBoxModel):
+    """
+    Singleton holding options for the optional PCN-PDF importer. Provider API
+    keys are NOT stored here — they come from environment / PLUGINS_CONFIG. This
+    only governs whether the importer is on and an optional prompt override; the
+    provider fallback chain is modeled by :class:`WirelessLLMProvider` rows.
+    """
+
+    pdf_import_enabled = models.BooleanField(
+        default=False,
+        verbose_name="PCN PDF import enabled",
+        help_text=(
+            "Enable extracting wireless link fields from an uploaded PCN PDF via "
+            "an LLM. Requires at least one configured provider with an API key."
+        ),
+    )
+    prompt_override = models.TextField(
+        blank=True,
+        help_text=(
+            "Optional extra instructions appended to the extraction prompt "
+            "(e.g. notes about your PCN document layout)."
+        ),
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Wireless LLM Settings"
+        verbose_name_plural = "Wireless LLM Settings"
+
+    def __str__(self):
+        return "Wireless Circuits LLM Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):  # pragma: no cover - singleton guard
+        pass
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def get_absolute_url(self):
+        return reverse("plugins:netbox_wireless_circuits:wirelessllmsettings")
+
+
+class WirelessLLMProvider(NetBoxModel):
+    """
+    One entry in the ordered LLM fallback chain for PCN PDF extraction. The
+    importer tries enabled providers in ascending ``rank`` order and falls
+    through to the next on failure. API keys are resolved from environment /
+    PLUGINS_CONFIG by provider, never stored on this row.
+    """
+
+    rank = models.PositiveIntegerField(
+        default=100,
+        help_text="Lower rank is tried first (1 = primary).",
+    )
+    provider = models.CharField(
+        max_length=20,
+        choices=LLMProviderChoices,
+    )
+    model = models.CharField(
+        max_length=100,
+        help_text="Model identifier, e.g. claude-opus-4-8, gemini-2.5-pro, gpt-4.1.",
+    )
+    enabled = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("rank", "provider")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "model"],
+                name="wwc_llmprovider_unique_provider_model",
+            ),
+        ]
+        verbose_name = "Wireless LLM Provider"
+        verbose_name_plural = "Wireless LLM Providers"
+
+    def __str__(self):
+        return f"{self.get_provider_display()} — {self.model} (rank {self.rank})"
+
+    def get_absolute_url(self):
+        return reverse(
+            "plugins:netbox_wireless_circuits:wirelessllmprovider", args=[self.pk]
+        )
+
+    def get_provider_color(self):
+        return LLMProviderChoices.colors.get(self.provider)

@@ -5,6 +5,7 @@ from netbox.tables import NetBoxTable, columns
 from .models import (
     WirelessCircuitEndpoint,
     WirelessLicenseProfile,
+    WirelessLLMProvider,
     WirelessModulationTarget,
     WirelessTargetException,
 )
@@ -118,6 +119,27 @@ class WirelessModulationTargetTable(NetBoxTable):
             "expected_rsl_dbm",
             "alarm_enabled",
         )
+
+
+class WirelessLLMProviderTable(NetBoxTable):
+    provider = columns.ChoiceFieldColumn()
+    model = tables.Column(linkify=True)
+    enabled = columns.BooleanColumn()
+
+    class Meta(NetBoxTable.Meta):
+        model = WirelessLLMProvider
+        fields = (
+            "pk",
+            "id",
+            "rank",
+            "provider",
+            "model",
+            "enabled",
+            "created",
+            "last_updated",
+        )
+        default_columns = ("rank", "provider", "model", "enabled")
+        order_by = ("rank",)
 
 
 class WirelessTargetExceptionTable(NetBoxTable):

@@ -168,6 +168,47 @@ class WirelessGlobalSettingsEditView(generic.ObjectEditView):
 
 
 # ---------------------------------------------------------------------------
+# WirelessLLMSettings (singleton) + WirelessLLMProvider chain
+# ---------------------------------------------------------------------------
+
+class WirelessLLMSettingsEditView(generic.ObjectEditView):
+    """The LLM Settings 'page' is the edit form itself (singleton)."""
+    queryset = models.WirelessLLMSettings.objects.all()
+    form = forms.WirelessLLMSettingsForm
+
+    def get_object(self, **kwargs):
+        return models.WirelessLLMSettings.load()
+
+
+class WirelessLLMProviderView(generic.ObjectView):
+    queryset = models.WirelessLLMProvider.objects.all()
+
+    def get_extra_context(self, request, instance):
+        from .llm import provider_status
+
+        return {"status": provider_status(instance.provider)}
+
+
+class WirelessLLMProviderListView(generic.ObjectListView):
+    queryset = models.WirelessLLMProvider.objects.all()
+    table = tables.WirelessLLMProviderTable
+
+
+class WirelessLLMProviderEditView(generic.ObjectEditView):
+    queryset = models.WirelessLLMProvider.objects.all()
+    form = forms.WirelessLLMProviderForm
+
+
+class WirelessLLMProviderDeleteView(generic.ObjectDeleteView):
+    queryset = models.WirelessLLMProvider.objects.all()
+
+
+class WirelessLLMProviderBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.WirelessLLMProvider.objects.all()
+    table = tables.WirelessLLMProviderTable
+
+
+# ---------------------------------------------------------------------------
 # WirelessTargetException
 # ---------------------------------------------------------------------------
 
