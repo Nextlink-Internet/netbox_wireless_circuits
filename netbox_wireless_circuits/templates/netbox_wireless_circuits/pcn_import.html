@@ -60,7 +60,27 @@
         </p>
         <form id="pcn-confirm-form" action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post">
           {% csrf_token %}
-          {% render_form form %}
+          {{ form.non_field_errors }}
+          {% render_field form.provider %}
+          {% render_field form.circuit_type %}
+
+          {% if form.site_fields %}
+          <div class="card mt-3 mb-3">
+            <h6 class="card-header">Assign each side to a NetBox site (optional)</h6>
+            <div class="card-body">
+              <p class="text-muted mb-3">
+                One dropdown per side of each path. A side is pre-selected when the
+                extracted site name exactly matches an existing NetBox site; otherwise
+                leave it blank. You can always set or change these later on each circuit.
+              </p>
+              {% for f in form.site_fields %}
+                {% render_field f %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% render_field form.data_json %}
           <div class="text-end">
             <a href="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" class="btn btn-outline-secondary">Start over</a>
             <button id="pcn-create-btn" type="submit" class="btn btn-success"><i class="mdi mdi-content-save"></i> Create profile</button>

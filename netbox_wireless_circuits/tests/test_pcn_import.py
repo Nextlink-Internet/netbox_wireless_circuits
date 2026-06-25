@@ -1,6 +1,7 @@
 from django.test import TestCase
 
 from circuits.models import Circuit, CircuitType, Provider
+from dcim.models import Site
 
 from netbox_wireless_circuits.pcn_import import (
     create_circuit_and_profile,
@@ -48,6 +49,21 @@ class PCNImportMappingTests(TestCase):
         self.assertEqual(target.modulation, "4096 QAM")
         # rank auto-filled from the canonical map on save
         self.assertEqual(target.modulation_rank, 100)
+
+    def test_endpoint_netbox_site_injected(self):
+        site = Site.objects.create(name="Throckmorton WE-1", slug="throck-we-1")
+        data = {
+            "profile": {"frequency_band": "11 GHz"},
+            "endpoints": [
+                {"side": "A", "netbox_site": site},
+                {"side": "Z"},  # no site -> stays null
+            ],
+        }
+        profile = create_from_extraction(self.circuit, data)
+        ep_a = profile.endpoints.get(side="A")
+        ep_z = profile.endpoints.get(side="Z")
+        self.assertEqual(ep_a.netbox_site, site)
+        self.assertIsNone(ep_z.netbox_site)
 
     def test_skeleton_like_minimal(self):
         profile = create_from_extraction(self.circuit, {"profile": {}})

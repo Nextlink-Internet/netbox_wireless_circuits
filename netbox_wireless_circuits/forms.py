@@ -252,11 +252,22 @@ class WirelessPCNUploadForm(forms.Form):
     )
 
 
+def pcn_site_field_key(pidx, eidx):
+    """Stable form-field name for one path's one endpoint Site dropdown."""
+    return f"site_p{pidx}_e{eidx}"
+
+
 class WirelessPCNConfirmForm(forms.Form):
     """
-    Step 2: choose the shared provider/type and review/edit the extracted data
-    (manual mapping) before the circuits are created. A PCN PDF may contain
-    several paths; each becomes its own circuit and carries its own ``cid``.
+    Step 2: choose the shared provider/type, optionally assign each side of each
+    path to a NetBox site, and review/edit the extracted data (manual mapping)
+    before the circuits are created. A PCN PDF may contain several paths; each
+    becomes its own circuit and carries its own ``cid``.
+
+    The per-side Site fields are built dynamically from ``endpoint_specs`` (the
+    number of paths/endpoints is only known after extraction); the view passes
+    the same specs when rendering and when handling the submit so the bound
+    fields line up.
     """
 
     provider = DynamicModelChoiceField(
@@ -274,6 +285,33 @@ class WirelessPCNConfirmForm(forms.Form):
                   "correct any values; keys: cid, profile, endpoints[], "
                   "modulation_targets[].",
     )
+
+    def __init__(self, *args, endpoint_specs=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # (field_name, pidx, eidx) for each dynamically-added Site dropdown.
+        self._site_fields = []
+        for spec in (endpoint_specs or []):
+            key = pcn_site_field_key(spec["pidx"], spec["eidx"])
+            self.fields[key] = DynamicModelChoiceField(
+                queryset=Site.objects.all(),
+                required=False,
+                label=spec["label"],
+                initial=spec.get("initial"),
+                help_text="Optional — link this side of the path to a NetBox site.",
+            )
+            self._site_fields.append((key, spec["pidx"], spec["eidx"]))
+
+    @property
+    def site_fields(self):
+        """Bound Site dropdown fields, for explicit rendering in the template."""
+        return [self[name] for name, _p, _e in self._site_fields]
+
+    def site_assignments(self):
+        """Yield ``(pidx, eidx, site)`` for every side the operator chose."""
+        for name, pidx, eidx in self._site_fields:
+            site = self.cleaned_data.get(name)
+            if site:
+                yield pidx, eidx, site
 
     def clean_data_json(self):
         import json

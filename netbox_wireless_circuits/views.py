@@ -6,11 +6,42 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import View
 
 from circuits.models import Circuit
+from dcim.models import Site
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 
 from . import filtersets, forms, models, pcn_import, tables
 from .nbxsync_sync import nbxsync_available, sync_enabled, sync_profile
+
+
+def _pcn_endpoint_specs(data):
+    """
+    Build the per-side Site-dropdown specs for the confirm form from extracted
+    (or skeleton) data. One spec per endpoint of every path, labelled with the
+    path's cid + side + extracted site name, and pre-filled with a NetBox site
+    whose name matches the extracted ``pcn_site_name`` (best effort, exact match).
+    """
+    specs = []
+    if not isinstance(data, dict):
+        return specs
+    for pidx, path in enumerate(data.get("paths") or []):
+        cid = (path.get("cid") or "").strip() or f"path #{pidx + 1}"
+        for eidx, ep in enumerate(path.get("endpoints") or []):
+            ep = ep or {}
+            side = ep.get("side") or "?"
+            site_name = (ep.get("pcn_site_name") or "").strip()
+            label = f"{cid} — side {side}"
+            if site_name:
+                label += f" ({site_name})"
+            initial = None
+            if site_name:
+                initial = (
+                    Site.objects.filter(name__iexact=site_name)
+                    .values_list("pk", flat=True)
+                    .first()
+                )
+            specs.append({"pidx": pidx, "eidx": eidx, "label": label, "initial": initial})
+    return specs
 
 
 # ---------------------------------------------------------------------------
@@ -96,9 +127,10 @@ class WirelessPCNImportView(View):
                     "Enter the path(s) manually below.")
             note_level = "warning"
 
-        confirm = forms.WirelessPCNConfirmForm(initial={
-            "data_json": json.dumps(data, indent=2),
-        })
+        confirm = forms.WirelessPCNConfirmForm(
+            initial={"data_json": json.dumps(data, indent=2)},
+            endpoint_specs=_pcn_endpoint_specs(data),
+        )
         return render(request, self.template_name, {
             "stage": "confirm",
             "form": confirm,
@@ -107,15 +139,31 @@ class WirelessPCNImportView(View):
         })
 
     def _handle_confirm(self, request):
-        form = forms.WirelessPCNConfirmForm(request.POST)
+        # Rebuild the same per-side Site fields from the submitted JSON so the
+        # bound form has matching fields to validate.
+        try:
+            submitted = json.loads(request.POST.get("data_json") or "")
+        except (json.JSONDecodeError, TypeError):
+            submitted = None
+        form = forms.WirelessPCNConfirmForm(
+            request.POST, endpoint_specs=_pcn_endpoint_specs(submitted)
+        )
         if not form.is_valid():
             return render(request, self.template_name, {"stage": "confirm", "form": form})
+
+        data = form.cleaned_data["data_json"]
+        # Inject the chosen NetBox sites into the right endpoint before creating.
+        for pidx, eidx, site in form.site_assignments():
+            try:
+                data["paths"][pidx]["endpoints"][eidx]["netbox_site"] = site
+            except (KeyError, IndexError, TypeError):
+                pass
 
         try:
             results = pcn_import.create_paths(
                 provider=form.cleaned_data["provider"],
                 circuit_type=form.cleaned_data["circuit_type"],
-                data=form.cleaned_data["data_json"],
+                data=data,
             )
         except Exception as exc:
             messages.error(request, f"Could not create the circuit(s): {exc}")

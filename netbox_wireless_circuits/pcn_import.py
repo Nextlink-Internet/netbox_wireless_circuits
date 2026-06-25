@@ -105,6 +105,11 @@ def create_from_extraction(circuit, data):
     )
     for ep in (data.get("endpoints") or []):
         fields = _filtered(ep, ENDPOINT_FIELDS)
+        # netbox_site is a Site instance injected by the wizard (a per-side
+        # dropdown), not part of the JSON whitelist; carry it through if present.
+        site = (ep or {}).get("netbox_site")
+        if site:
+            fields["netbox_site"] = site
         if fields.get("side"):
             WirelessCircuitEndpoint.objects.create(
                 wireless_license_profile=profile, **fields
