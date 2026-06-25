@@ -53,6 +53,7 @@ wireless_circuits_group = MenuGroup(
             permissions=[f"{PLUGIN}.add_wirelesslicenseprofile"],
         ),
         _item("wirelesstargetexception", _("Target Exceptions"), with_import=False),
+        _item("wirelessbandtolerance", _("Band Tolerances"), with_import=False),
         _item("wirelessllmprovider", _("LLM Providers"), with_import=False),
         MenuItem(
             link=f"plugins:{PLUGIN}:wirelessllmsettings",

@@ -1,0 +1,30 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Band Tolerance Rule</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Frequency band</th><td>{{ object.get_frequency_band_display }}</td></tr>
+        <tr><th scope="row">Tolerance (dB)</th><td>{{ object.tolerance_db }}</td></tr>
+        <tr><th scope="row">Enabled</th><td>{% checkmark object.enabled %}</td></tr>
+      </table>
+      <div class="card-footer text-muted">
+        Links in this band may run up to <strong>{{ object.tolerance_db }} dB</strong>
+        off their PCN target before alarming. <code>0</code> means the link must
+        meet target. When disabled, this band falls back to the default tolerance
+        in <a href="{% url 'plugins:netbox_wireless_circuits:wirelessglobalsettings' %}">Global Settings</a>.
+      </div>
+    </div>
+    {% if object.notes %}
+    <div class="card">
+      <h5 class="card-header">Notes</h5>
+      <div class="card-body">{{ object.notes|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+    {% include 'inc/panels/tags.html' %}
+  </div>
+</div>
+{% endblock %}

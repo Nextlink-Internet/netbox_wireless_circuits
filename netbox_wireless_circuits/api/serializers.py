@@ -4,6 +4,7 @@ from circuits.api.serializers import CircuitSerializer
 from netbox.api.serializers import NetBoxModelSerializer
 
 from ..models import (
+    WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
@@ -18,6 +19,7 @@ __all__ = (
     "WirelessCircuitEndpointSerializer",
     "WirelessModulationTargetSerializer",
     "WirelessGlobalSettingsSerializer",
+    "WirelessBandToleranceSerializer",
     "WirelessTargetExceptionSerializer",
     "WirelessLLMSettingsSerializer",
     "WirelessLLMProviderSerializer",
@@ -75,6 +77,16 @@ class WirelessGlobalSettingsSerializer(NetBoxModelSerializer):
             "notes", "tags", "custom_fields", "created", "last_updated",
         )
         brief_fields = ("id", "url", "display", "global_tolerance_db")
+
+
+class WirelessBandToleranceSerializer(NetBoxModelSerializer):
+    class Meta:
+        model = WirelessBandTolerance
+        fields = (
+            "id", "url", "display", "frequency_band", "tolerance_db", "enabled",
+            "notes", "tags", "custom_fields", "created", "last_updated",
+        )
+        brief_fields = ("id", "url", "display", "frequency_band", "tolerance_db")
 
 
 class WirelessLLMSettingsSerializer(NetBoxModelSerializer):

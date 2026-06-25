@@ -7,6 +7,7 @@ from utilities.forms.fields import CSVChoiceField, CSVModelChoiceField, DynamicM
 
 from .choices import FrequencyBandChoices, ModulationChoices, ModulationDirectionChoices
 from .models import (
+    WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
@@ -21,6 +22,7 @@ __all__ = (
     "WirelessCircuitEndpointForm",
     "WirelessModulationTargetForm",
     "WirelessGlobalSettingsForm",
+    "WirelessBandToleranceForm",
     "WirelessTargetExceptionForm",
     "WirelessLLMSettingsForm",
     "WirelessLLMProviderForm",
@@ -199,6 +201,18 @@ class WirelessLLMProviderForm(NetBoxModelForm):
             "rank",
             "provider",
             "model",
+            "enabled",
+            "notes",
+            "tags",
+        )
+
+
+class WirelessBandToleranceForm(NetBoxModelForm):
+    class Meta:
+        model = WirelessBandTolerance
+        fields = (
+            "frequency_band",
+            "tolerance_db",
             "enabled",
             "notes",
             "tags",

@@ -265,6 +265,33 @@ class WirelessGlobalSettingsEditView(generic.ObjectEditView):
 
 
 # ---------------------------------------------------------------------------
+# WirelessBandTolerance (global per-band tolerance rules)
+# ---------------------------------------------------------------------------
+
+class WirelessBandToleranceView(generic.ObjectView):
+    queryset = models.WirelessBandTolerance.objects.all()
+
+
+class WirelessBandToleranceListView(generic.ObjectListView):
+    queryset = models.WirelessBandTolerance.objects.all()
+    table = tables.WirelessBandToleranceTable
+
+
+class WirelessBandToleranceEditView(generic.ObjectEditView):
+    queryset = models.WirelessBandTolerance.objects.all()
+    form = forms.WirelessBandToleranceForm
+
+
+class WirelessBandToleranceDeleteView(generic.ObjectDeleteView):
+    queryset = models.WirelessBandTolerance.objects.all()
+
+
+class WirelessBandToleranceBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.WirelessBandTolerance.objects.all()
+    table = tables.WirelessBandToleranceTable
+
+
+# ---------------------------------------------------------------------------
 # WirelessLLMSettings (singleton) + WirelessLLMProvider chain
 # ---------------------------------------------------------------------------
 

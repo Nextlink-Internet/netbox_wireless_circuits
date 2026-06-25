@@ -4,7 +4,11 @@ from rest_framework.response import Response
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from ..choices import EndpointSideChoices, ModulationDirectionChoices
-from ..zabbix import effective_critical_rsl, effective_warning_rsl
+from ..zabbix import (
+    effective_critical_rsl,
+    effective_tolerance_for_profile,
+    effective_warning_rsl,
+)
 from ..filtersets import (
     WirelessCircuitEndpointFilterSet,
     WirelessLicenseProfileFilterSet,
@@ -12,6 +16,7 @@ from ..filtersets import (
     WirelessTargetExceptionFilterSet,
 )
 from ..models import (
+    WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
@@ -21,6 +26,7 @@ from ..models import (
     WirelessTargetException,
 )
 from .serializers import (
+    WirelessBandToleranceSerializer,
     WirelessCircuitEndpointSerializer,
     WirelessGlobalSettingsSerializer,
     WirelessLicenseProfileSerializer,
@@ -62,7 +68,7 @@ class WirelessLicenseProfileViewSet(NetBoxModelViewSet):
         direction = request.query_params.get("direction")
 
         settings_obj = WirelessGlobalSettings.load()
-        tolerance = settings_obj.effective_tolerance_db
+        tolerance = effective_tolerance_for_profile(profile, settings_obj)
         active_exception = next(
             (e for e in profile.exceptions.all() if e.is_active), None
         )
@@ -192,6 +198,11 @@ class WirelessTargetExceptionViewSet(NetBoxModelViewSet):
     )
     serializer_class = WirelessTargetExceptionSerializer
     filterset_class = WirelessTargetExceptionFilterSet
+
+
+class WirelessBandToleranceViewSet(NetBoxModelViewSet):
+    queryset = WirelessBandTolerance.objects.prefetch_related("tags")
+    serializer_class = WirelessBandToleranceSerializer
 
 
 class WirelessLLMSettingsViewSet(NetBoxModelViewSet):

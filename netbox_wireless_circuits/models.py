@@ -21,6 +21,7 @@ __all__ = (
     "WirelessCircuitEndpoint",
     "WirelessModulationTarget",
     "WirelessGlobalSettings",
+    "WirelessBandTolerance",
     "WirelessTargetException",
     "WirelessLLMSettings",
     "WirelessLLMProvider",
@@ -468,6 +469,47 @@ class WirelessGlobalSettings(NetBoxModel):
     def get_absolute_url(self):
         # The settings "page" is the edit form itself (singleton).
         return reverse("plugins:netbox_wireless_circuits:wirelessglobalsettings")
+
+
+class WirelessBandTolerance(NetBoxModel):
+    """
+    Global rule for how many dB off the PCN target is acceptable, **per license
+    band**. Overrides the default :attr:`WirelessGlobalSettings.global_tolerance_db`
+    for links in that band. A rule of ``0`` means no allowance (must meet target).
+    """
+
+    frequency_band = models.CharField(
+        max_length=20,
+        choices=FrequencyBandChoices,
+        unique=True,
+        help_text="License band this tolerance rule applies to.",
+    )
+    tolerance_db = models.DecimalField(
+        max_digits=6, decimal_places=2, default=0,
+        verbose_name="Tolerance (dB)",
+        help_text=(
+            "Allowed dB off the PCN target for this band, added to each modulation "
+            "target's warning/critical margins. 0 means the link must meet target."
+        ),
+    )
+    enabled = models.BooleanField(
+        default=True,
+        help_text="If unset, links in this band fall back to the default tolerance.",
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("frequency_band",)
+        verbose_name = "Wireless Band Tolerance"
+        verbose_name_plural = "Wireless Band Tolerances"
+
+    def __str__(self):
+        return f"{self.frequency_band}: {self.tolerance_db} dB"
+
+    def get_absolute_url(self):
+        return reverse(
+            "plugins:netbox_wireless_circuits:wirelessbandtolerance", args=[self.pk]
+        )
 
 
 class WirelessTargetException(NetBoxModel):

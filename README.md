@@ -203,14 +203,24 @@ contain multiple paths. See [PCN PDF import](#pcn-pdf-import-llm-assisted).
 Two mechanisms loosen the "is this link healthy?" decision without editing every
 target by hand:
 
-### Universal tolerance (Global Settings)
+### Tolerance — acceptable dB off target (global, optionally per band)
 
-A single **global tolerance (dB)** is added on top of every modulation target's
-warning/critical margins. For example, a target of `-38 dBm` with a `2 dB`
-tolerance treats `-40 dBm` as still acceptable. It can be toggled off
-(`tolerance_enabled = false`), in which case it is treated as `0`. Edit it under
-**Circuits → Wireless Circuits → Global Settings** (requires the
-`change_wirelessglobalsettings` permission).
+How many dB a link may run off its PCN target before alarming is a **global
+rule**, with optional **per-band** overrides:
+
+- **Default tolerance** — a single dB value in **Wireless Circuits → Global
+  Settings** (`global_tolerance_db`), applied to every band that has no specific
+  rule. The master `tolerance_enabled` switch disables *all* allowance when off.
+- **Per-band rules** — under **Wireless Circuits → Band Tolerances**, set the
+  allowed dB per license band (e.g. *11 GHz → 2 dB*). Change it later (1.5 dB), or
+  set **0** to require that band to meet target exactly (no allowance). A disabled
+  band rule falls back to the default.
+
+The effective tolerance for a link resolves as **band rule (if enabled) →
+default → 0**, and is added on top of each modulation target's warning/critical
+margins. Example: a `-38 dBm` target with a `2 dB` 11 GHz rule treats `-40 dBm`
+as still acceptable. (This is distinct from a **per-link exception** below, which
+is an explicit, approved one-off for a specific link.)
 
 ### Per-link exceptions
 

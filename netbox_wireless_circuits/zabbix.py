@@ -13,6 +13,8 @@ This module has **no dependency on nbxsync**: it only computes the desired
 macro/tag specs. The code that writes them into nbxsync models lives in
 ``nbxsync_sync.py`` and is a soft (optional) dependency.
 """
+from decimal import Decimal
+
 from .choices import EndpointSideChoices, ModulationDirectionChoices
 
 # Receiving endpoint side for each direction of travel.
@@ -55,6 +57,27 @@ def top_enabled_target(profile, direction):
 def active_exception(profile):
     """The first currently-active per-link exception, or None."""
     return next((e for e in profile.exceptions.all() if e.is_active), None)
+
+
+def effective_tolerance_for_profile(profile, settings=None):
+    """
+    The acceptable dB-off-target for a profile, resolved as:
+    its band's rule (if enabled) → the global default → 0. The master
+    ``tolerance_enabled`` switch disables all allowances.
+    """
+    from .models import WirelessBandTolerance, WirelessGlobalSettings
+
+    settings = settings or WirelessGlobalSettings.load()
+    if not settings.tolerance_enabled:
+        return Decimal("0")
+    band = profile.frequency_band
+    if band:
+        rule = WirelessBandTolerance.objects.filter(
+            frequency_band=band, enabled=True
+        ).first()
+        if rule is not None:
+            return rule.tolerance_db or Decimal("0")
+    return settings.global_tolerance_db or Decimal("0")
 
 
 def macro_values_for_direction(profile, direction, tolerance, exception):
@@ -118,7 +141,6 @@ def device_sync_plan(device, settings):
     ``{$WL.RSL.WARN}`` (context, if any, is carried separately).
     """
     prefix = sanitize_prefix(settings.zabbix_macro_prefix)
-    tolerance = settings.effective_tolerance_db
     endpoints = device_endpoints(device)
     multi = len(endpoints) > 1
 
@@ -130,6 +152,7 @@ def device_sync_plan(device, settings):
         if direction is None:
             continue
         profile = ep.wireless_license_profile
+        tolerance = effective_tolerance_for_profile(profile, settings)
         exception = active_exception(profile)
         values = macro_values_for_direction(profile, direction, tolerance, exception)
         if not values:

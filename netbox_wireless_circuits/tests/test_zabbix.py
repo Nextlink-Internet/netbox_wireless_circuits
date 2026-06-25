@@ -13,6 +13,7 @@ from dcim.models import (
 )
 
 from netbox_wireless_circuits.models import (
+    WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
@@ -23,6 +24,7 @@ from netbox_wireless_circuits.zabbix import (
     RX_DIRECTION_FOR_SIDE,
     device_sync_plan,
     effective_critical_rsl,
+    effective_tolerance_for_profile,
     effective_warning_rsl,
     macro_values_for_direction,
     sanitize_prefix,
@@ -64,6 +66,50 @@ class ThresholdMathTests(TestCase):
     def test_effective_rsl_none_when_no_expected(self):
         t = WirelessModulationTarget(expected_rsl_dbm=None)
         self.assertIsNone(effective_warning_rsl(t, Decimal("0")))
+
+
+class BandToleranceTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        provider = Provider.objects.create(name="Comsearch", slug="comsearch")
+        ctype = CircuitType.objects.create(name="Microwave", slug="microwave")
+        circuit = Circuit.objects.create(cid="MW-BT", provider=provider, type=ctype)
+        cls.profile = WirelessLicenseProfile.objects.create(
+            circuit=circuit, frequency_band="11 GHz"
+        )
+
+    def _settings(self, default=Decimal("2"), enabled=True):
+        s = WirelessGlobalSettings.load()
+        s.global_tolerance_db = default
+        s.tolerance_enabled = enabled
+        s.save()
+        return s
+
+    def test_falls_back_to_default_without_rule(self):
+        s = self._settings(default=Decimal("2"))
+        self.assertEqual(effective_tolerance_for_profile(self.profile, s), Decimal("2.00"))
+
+    def test_band_rule_overrides_default(self):
+        s = self._settings(default=Decimal("2"))
+        WirelessBandTolerance.objects.create(frequency_band="11 GHz", tolerance_db=Decimal("1.5"))
+        self.assertEqual(effective_tolerance_for_profile(self.profile, s), Decimal("1.50"))
+
+    def test_band_rule_zero_disallows(self):
+        s = self._settings(default=Decimal("2"))
+        WirelessBandTolerance.objects.create(frequency_band="11 GHz", tolerance_db=Decimal("0"))
+        self.assertEqual(effective_tolerance_for_profile(self.profile, s), Decimal("0.00"))
+
+    def test_disabled_band_rule_falls_back(self):
+        s = self._settings(default=Decimal("2"))
+        WirelessBandTolerance.objects.create(
+            frequency_band="11 GHz", tolerance_db=Decimal("1.5"), enabled=False
+        )
+        self.assertEqual(effective_tolerance_for_profile(self.profile, s), Decimal("2.00"))
+
+    def test_master_switch_off_zeroes_everything(self):
+        s = self._settings(default=Decimal("2"), enabled=False)
+        WirelessBandTolerance.objects.create(frequency_band="11 GHz", tolerance_db=Decimal("1.5"))
+        self.assertEqual(effective_tolerance_for_profile(self.profile, s), Decimal("0"))
 
 
 class MacroValueTests(TestCase):

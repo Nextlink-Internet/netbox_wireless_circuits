@@ -221,6 +221,44 @@ urlpatterns = [
         kwargs={"model": models.WirelessLLMProvider},
     ),
 
+    # --- Band Tolerances (global per-band rules) ---
+    path(
+        "band-tolerances/",
+        views.WirelessBandToleranceListView.as_view(),
+        name="wirelessbandtolerance_list",
+    ),
+    path(
+        "band-tolerances/add/",
+        views.WirelessBandToleranceEditView.as_view(),
+        name="wirelessbandtolerance_add",
+    ),
+    path(
+        "band-tolerances/delete/",
+        views.WirelessBandToleranceBulkDeleteView.as_view(),
+        name="wirelessbandtolerance_bulk_delete",
+    ),
+    path(
+        "band-tolerances/<int:pk>/",
+        views.WirelessBandToleranceView.as_view(),
+        name="wirelessbandtolerance",
+    ),
+    path(
+        "band-tolerances/<int:pk>/edit/",
+        views.WirelessBandToleranceEditView.as_view(),
+        name="wirelessbandtolerance_edit",
+    ),
+    path(
+        "band-tolerances/<int:pk>/delete/",
+        views.WirelessBandToleranceDeleteView.as_view(),
+        name="wirelessbandtolerance_delete",
+    ),
+    path(
+        "band-tolerances/<int:pk>/changelog/",
+        ObjectChangeLogView.as_view(),
+        name="wirelessbandtolerance_changelog",
+        kwargs={"model": models.WirelessBandTolerance},
+    ),
+
     # --- Target Exceptions ---
     path(
         "target-exceptions/",
