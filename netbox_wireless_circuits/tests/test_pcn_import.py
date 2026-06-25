@@ -3,6 +3,7 @@ from django.test import TestCase
 from circuits.models import Circuit, CircuitType, Provider
 from dcim.models import Site
 
+from netbox_wireless_circuits.models import WirelessLicenseProfile
 from netbox_wireless_circuits.pcn_import import (
     create_circuit_and_profile,
     create_from_extraction,
@@ -145,3 +146,45 @@ class PCNImportMappingTests(TestCase):
         data = {"paths": [{"profile": {}, "endpoints": [], "modulation_targets": []}]}
         with self.assertRaises(ValueError):
             create_paths(self.provider, self.ctype, data)
+
+    def test_import_sets_created_via_import(self):
+        _, profile = create_circuit_and_profile(
+            cid="MW-FLAG", provider=self.provider, circuit_type=self.ctype,
+            data={"profile": {}},
+        )
+        self.assertTrue(profile.created_via_import)
+
+
+class ProfileDeletionTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.provider = Provider.objects.create(name="Comsearch", slug="comsearch")
+        cls.ctype = CircuitType.objects.create(name="Microwave", slug="microwave")
+
+    def test_deleting_imported_profile_deletes_circuit(self):
+        circuit, profile = create_circuit_and_profile(
+            cid="DEL-IMP", provider=self.provider, circuit_type=self.ctype,
+            data={"profile": {}},
+        )
+        circuit_pk = circuit.pk
+        profile.delete()
+        self.assertFalse(Circuit.objects.filter(pk=circuit_pk).exists())
+
+    def test_deleting_manual_profile_keeps_circuit(self):
+        circuit = Circuit.objects.create(
+            cid="DEL-MAN", provider=self.provider, type=self.ctype
+        )
+        # Not created via import -> circuit must survive profile deletion.
+        profile = WirelessLicenseProfile.objects.create(circuit=circuit)
+        profile.delete()
+        self.assertTrue(Circuit.objects.filter(pk=circuit.pk).exists())
+
+    def test_deleting_circuit_directly_cascades_without_error(self):
+        circuit, profile = create_circuit_and_profile(
+            cid="DEL-CASC", provider=self.provider, circuit_type=self.ctype,
+            data={"profile": {}},
+        )
+        circuit_pk, profile_pk = circuit.pk, profile.pk
+        circuit.delete()
+        self.assertFalse(Circuit.objects.filter(pk=circuit_pk).exists())
+        self.assertFalse(WirelessLicenseProfile.objects.filter(pk=profile_pk).exists())

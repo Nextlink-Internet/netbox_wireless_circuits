@@ -132,7 +132,11 @@ def create_from_extraction(circuit, data):
             prof_fields["radio_configuration"] = f"{int(prof_fields['carrier_count'])}+0"
         except (TypeError, ValueError):
             pass
-    profile = WirelessLicenseProfile.objects.create(circuit=circuit, **prof_fields)
+    # created_via_import marks the circuit as wizard-created so deleting the
+    # profile later also removes the circuit it created (see signals).
+    profile = WirelessLicenseProfile.objects.create(
+        circuit=circuit, created_via_import=True, **prof_fields
+    )
     for ep in (data.get("endpoints") or []):
         fields = _filtered(ep, ENDPOINT_FIELDS)
         # netbox_site is a Site instance injected by the wizard (a per-side

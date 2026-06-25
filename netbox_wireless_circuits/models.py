@@ -116,6 +116,16 @@ class WirelessLicenseProfile(NetBoxModel):
     source_document = models.URLField(blank=True)
     notes = models.TextField(blank=True)
 
+    # Set by the PCN-PDF import wizard, which CREATES the circuit. When true,
+    # deleting this profile also deletes its circuit (and terminations); a
+    # profile attached to a pre-existing circuit (manual add) leaves it intact.
+    created_via_import = models.BooleanField(
+        default=False,
+        verbose_name="Created via PCN import",
+        help_text="The import wizard created this profile's circuit; deleting "
+                  "the profile will also delete that circuit and its terminations.",
+    )
+
     class Meta:
         ordering = ("circuit",)
         verbose_name = "Wireless License Profile"
