@@ -1,0 +1,80 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+{% load plugins %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">License / Registration</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">Circuit</th>
+          <td>{{ object.circuit|linkify }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Registration status</th>
+          <td>{% badge object.get_registration_status_display bg_color=object.get_registration_status_color %}</td>
+        </tr>
+        <tr><th scope="row">PCN number</th><td>{{ object.pcn_number|placeholder }}</td></tr>
+        <tr><th scope="row">RCN / Link Registration</th><td>{{ object.rcn_number|placeholder }}</td></tr>
+        <tr><th scope="row">Job number</th><td>{{ object.job_number|placeholder }}</td></tr>
+        <tr><th scope="row">PCN date</th><td>{{ object.pcn_date|placeholder }}</td></tr>
+        <tr><th scope="row">Registration date</th><td>{{ object.registration_date|placeholder }}</td></tr>
+        <tr><th scope="row">Registration completion</th><td>{{ object.registration_completion_date|placeholder }}</td></tr>
+        <tr><th scope="row">Licensee</th><td>{{ object.licensee|placeholder }}</td></tr>
+        <tr><th scope="row">Call sign</th><td>{{ object.call_sign|placeholder }}</td></tr>
+        <tr><th scope="row">Radio service</th><td>{{ object.radio_service|placeholder }}</td></tr>
+        <tr><th scope="row">Station class</th><td>{{ object.station_class|placeholder }}</td></tr>
+        <tr>
+          <th scope="row">Source document</th>
+          <td>
+            {% if object.source_document %}
+              <a href="{{ object.source_document }}" target="_blank" rel="noopener">{{ object.source_document }}</a>
+            {% else %}{{ ''|placeholder }}{% endif %}
+          </td>
+        </tr>
+      </table>
+    </div>
+    {% include 'inc/panels/tags.html' %}
+  </div>
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Path / RF Engineering</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Frequency band</th><td>{{ object.get_frequency_band_display|placeholder }}</td></tr>
+        <tr><th scope="row">Channel plan (MHz)</th><td>{{ object.channel_plan_mhz|placeholder }}</td></tr>
+        <tr><th scope="row">Path length (km)</th><td>{{ object.path_length_km|placeholder }}</td></tr>
+        <tr><th scope="row">Path length (mi)</th><td>{{ object.path_length_miles|placeholder }}</td></tr>
+        <tr><th scope="row">Atmospheric loss (dB)</th><td>{{ object.atmospheric_loss_db|placeholder }}</td></tr>
+        <tr><th scope="row">Free space loss (dB)</th><td>{{ object.free_space_loss_db|placeholder }}</td></tr>
+        <tr><th scope="row">Receiver threshold (dBm)</th><td>{{ object.receiver_threshold_dbm|placeholder }}</td></tr>
+      </table>
+    </div>
+    {% if object.notes %}
+    <div class="card">
+      <h5 class="card-header">Notes</h5>
+      <div class="card-body">{{ object.notes|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row">
+  <div class="col col-md-12">
+    {% include 'netbox_wireless_circuits/inc/endpoints_panel.html' %}
+  </div>
+</div>
+
+<div class="row">
+  <div class="col col-md-12">
+    {% include 'netbox_wireless_circuits/inc/modulation_panel.html' %}
+  </div>
+</div>
+
+<div class="row">
+  <div class="col col-md-12">
+    {% include 'netbox_wireless_circuits/inc/exceptions_panel.html' %}
+  </div>
+</div>
+{% endblock %}

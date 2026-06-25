@@ -1,0 +1,44 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Modulation Target</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Profile</th><td>{{ object.wireless_license_profile|linkify }}</td></tr>
+        <tr><th scope="row">Circuit</th><td>{{ object.wireless_license_profile.circuit|linkify }}</td></tr>
+        <tr><th scope="row">Direction</th><td>{{ object.get_direction_display }}</td></tr>
+        <tr><th scope="row">Modulation</th><td>{{ object.modulation }}</td></tr>
+        <tr><th scope="row">Modulation rank</th><td>{{ object.modulation_rank }}</td></tr>
+        <tr><th scope="row">Radio model</th><td>{{ object.radio_model|placeholder }}</td></tr>
+        <tr><th scope="row">Emission designator</th><td>{{ object.emission_designator|placeholder }}</td></tr>
+        <tr><th scope="row">Data rate (kbps)</th><td>{{ object.data_rate_kbps|placeholder }}</td></tr>
+      </table>
+    </div>
+    {% include 'inc/panels/tags.html' %}
+  </div>
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Targets &amp; Alarm Thresholds</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Max power (dBm)</th><td>{{ object.max_power_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">EIRP (dBm)</th><td>{{ object.eirp_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">Expected RSL (dBm)</th><td>{{ object.expected_rsl_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">Min acceptable RSL (dBm)</th><td>{{ object.min_acceptable_rsl_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">Max acceptable RSL (dBm)</th><td>{{ object.max_acceptable_rsl_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">Warning margin (dB)</th><td>{{ object.warning_margin_db }}</td></tr>
+        <tr><th scope="row">Critical margin (dB)</th><td>{{ object.critical_margin_db }}</td></tr>
+        <tr><th scope="row">Alarm enabled</th><td>{% checkmark object.alarm_enabled %}</td></tr>
+      </table>
+    </div>
+    {% if object.notes %}
+    <div class="card">
+      <h5 class="card-header">Notes</h5>
+      <div class="card-body">{{ object.notes|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

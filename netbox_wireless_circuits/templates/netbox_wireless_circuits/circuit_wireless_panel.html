@@ -1,0 +1,21 @@
+{% load helpers %}
+<div class="card">
+  <h5 class="card-header">Wireless License</h5>
+  {% if profile %}
+  <table class="table table-hover attr-table">
+    <tr><th scope="row">Status</th><td>{% badge profile.get_registration_status_display bg_color=profile.get_registration_status_color %}</td></tr>
+    <tr><th scope="row">Band</th><td>{{ profile.get_frequency_band_display|placeholder }}</td></tr>
+    <tr><th scope="row">RCN</th><td>{{ profile.rcn_number|placeholder }}</td></tr>
+  </table>
+  <div class="card-footer text-end">
+    <a href="{{ circuit.get_absolute_url }}wireless/" class="btn btn-sm btn-primary">
+      <i class="mdi mdi-radio-tower"></i> Wireless License tab
+    </a>
+  </div>
+  {% else %}
+  <div class="card-body text-muted">
+    No wireless license profile.
+    <a href="{% url 'plugins:netbox_wireless_circuits:wirelesslicenseprofile_add' %}?circuit={{ circuit.pk }}">Add</a>
+  </div>
+  {% endif %}
+</div>

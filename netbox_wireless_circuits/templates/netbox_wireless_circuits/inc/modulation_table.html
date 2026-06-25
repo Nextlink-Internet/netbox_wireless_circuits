@@ -1,0 +1,40 @@
+{% load helpers %}
+<div class="card">
+  <h5 class="card-header">Modulation Targets — {{ direction_label }}</h5>
+  {% if targets %}
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Modulation</th>
+          <th>Rank</th>
+          <th>Data rate (kbps)</th>
+          <th>Max power (dBm)</th>
+          <th>EIRP (dBm)</th>
+          <th>Expected RSL (dBm)</th>
+          <th>Warn (dB)</th>
+          <th>Crit (dB)</th>
+          <th>Alarm</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in targets %}
+        <tr>
+          <td><a href="{{ t.get_absolute_url }}">{{ t.modulation }}</a></td>
+          <td>{{ t.modulation_rank }}</td>
+          <td>{{ t.data_rate_kbps|placeholder }}</td>
+          <td>{{ t.max_power_dbm|placeholder }}</td>
+          <td>{{ t.eirp_dbm|placeholder }}</td>
+          <td>{{ t.expected_rsl_dbm|placeholder }}</td>
+          <td>{{ t.warning_margin_db }}</td>
+          <td>{{ t.critical_margin_db }}</td>
+          <td>{% checkmark t.alarm_enabled %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted">No modulation targets for this direction.</div>
+  {% endif %}
+</div>

@@ -1,0 +1,42 @@
+{% load helpers %}
+<div class="card">
+  <h5 class="card-header">
+    Endpoint {{ side }}
+    {% if endpoint %}
+      <div class="card-actions">
+        <a href="{{ endpoint.get_absolute_url }}" class="btn btn-sm btn-primary">
+          <i class="mdi mdi-eye"></i> View
+        </a>
+        <a href="{% url 'plugins:netbox_wireless_circuits:wirelesscircuitendpoint_edit' pk=endpoint.pk %}" class="btn btn-sm btn-warning">
+          <i class="mdi mdi-pencil"></i> Edit
+        </a>
+      </div>
+    {% endif %}
+  </h5>
+  {% if endpoint %}
+  <table class="table table-hover attr-table">
+    <tr><th scope="row">Site name (PCN)</th><td>{{ endpoint.pcn_site_name|placeholder }}</td></tr>
+    <tr><th scope="row">NetBox site</th><td>{{ endpoint.netbox_site|linkify|placeholder }}</td></tr>
+    <tr><th scope="row">NetBox device</th><td>{{ endpoint.netbox_device|linkify|placeholder }}</td></tr>
+    <tr><th scope="row">NetBox interface</th><td>{{ endpoint.netbox_interface|linkify|placeholder }}</td></tr>
+    <tr><th scope="row">County / State</th><td>{{ endpoint.county_state|placeholder }}</td></tr>
+    <tr><th scope="row">Latitude / Longitude</th><td>{{ endpoint.latitude|placeholder }} / {{ endpoint.longitude|placeholder }}</td></tr>
+    <tr><th scope="row">ASR number</th><td>{{ endpoint.asr_number|placeholder }}</td></tr>
+    <tr><th scope="row">Path azimuth (°)</th><td>{{ endpoint.path_azimuth_deg|placeholder }}</td></tr>
+    <tr><th scope="row">TX frequency (MHz)</th><td>{{ endpoint.tx_frequency_mhz|placeholder }}</td></tr>
+    <tr><th scope="row">Polarization</th><td>{{ endpoint.polarization|placeholder }}</td></tr>
+    <tr><th scope="row">Antenna</th><td>{{ endpoint.antenna_manufacturer }} {{ endpoint.antenna_model }} {% if endpoint.antenna_gain_dbi %}({{ endpoint.antenna_gain_dbi }} dBi){% endif %}</td></tr>
+    <tr><th scope="row">Radio</th><td>{{ endpoint.radio_manufacturer }} {{ endpoint.radio_model }}</td></tr>
+    <tr><th scope="row">Nominal power / RSL (dBm)</th><td>{{ endpoint.nominal_power_dbm|placeholder }} / {{ endpoint.nominal_rsl_dbm|placeholder }}</td></tr>
+    <tr><th scope="row">Coordinated power / RSL (dBm)</th><td>{{ endpoint.coordinated_power_dbm|placeholder }} / {{ endpoint.coordinated_rsl_dbm|placeholder }}</td></tr>
+    <tr><th scope="row">Maximum power / RSL (dBm)</th><td>{{ endpoint.maximum_power_dbm|placeholder }} / {{ endpoint.maximum_rsl_dbm|placeholder }}</td></tr>
+  </table>
+  {% else %}
+  <div class="card-body text-muted">
+    No Endpoint {{ side }} defined.
+    {% if profile %}
+      <a href="{% url 'plugins:netbox_wireless_circuits:wirelesscircuitendpoint_add' %}?wireless_license_profile={{ profile.pk }}&side={{ side }}">Add Endpoint {{ side }}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

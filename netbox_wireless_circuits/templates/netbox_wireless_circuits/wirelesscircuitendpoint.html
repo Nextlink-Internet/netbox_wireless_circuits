@@ -1,0 +1,60 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Endpoint</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Profile</th><td>{{ object.wireless_license_profile|linkify }}</td></tr>
+        <tr><th scope="row">Circuit</th><td>{{ object.wireless_license_profile.circuit|linkify }}</td></tr>
+        <tr><th scope="row">Side</th><td>{{ object.get_side_display }}</td></tr>
+        <tr><th scope="row">Site name (PCN)</th><td>{{ object.pcn_site_name|placeholder }}</td></tr>
+        <tr><th scope="row">NetBox site</th><td>{{ object.netbox_site|linkify|placeholder }}</td></tr>
+        <tr><th scope="row">NetBox device</th><td>{{ object.netbox_device|linkify|placeholder }}</td></tr>
+        <tr><th scope="row">NetBox interface</th><td>{{ object.netbox_interface|linkify|placeholder }}</td></tr>
+        <tr><th scope="row">County / State</th><td>{{ object.county_state|placeholder }}</td></tr>
+        <tr><th scope="row">Latitude / Longitude</th><td>{{ object.latitude|placeholder }} / {{ object.longitude|placeholder }}</td></tr>
+        <tr><th scope="row">ASR number</th><td>{{ object.asr_number|placeholder }}</td></tr>
+        <tr><th scope="row">Ground elevation (m/ft)</th><td>{{ object.ground_elevation_m|placeholder }} / {{ object.ground_elevation_ft|placeholder }}</td></tr>
+        <tr><th scope="row">Structure height AGL (m/ft)</th><td>{{ object.structure_height_agl_m|placeholder }} / {{ object.structure_height_agl_ft|placeholder }}</td></tr>
+        <tr><th scope="row">Centerline AGL (m/ft)</th><td>{{ object.centerline_agl_m|placeholder }} / {{ object.centerline_agl_ft|placeholder }}</td></tr>
+      </table>
+    </div>
+    {% include 'inc/panels/tags.html' %}
+  </div>
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Antenna &amp; Radio</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Path azimuth (°)</th><td>{{ object.path_azimuth_deg|placeholder }}</td></tr>
+        <tr><th scope="row">Antenna code</th><td>{{ object.antenna_code|placeholder }}</td></tr>
+        <tr><th scope="row">Antenna manufacturer</th><td>{{ object.antenna_manufacturer|placeholder }}</td></tr>
+        <tr><th scope="row">Antenna model</th><td>{{ object.antenna_model|placeholder }}</td></tr>
+        <tr><th scope="row">Antenna diameter (ft)</th><td>{{ object.antenna_diameter_ft|placeholder }}</td></tr>
+        <tr><th scope="row">Antenna gain (dBi)</th><td>{{ object.antenna_gain_dbi|placeholder }}</td></tr>
+        <tr><th scope="row">Antenna beamwidth (°)</th><td>{{ object.antenna_beamwidth_deg|placeholder }}</td></tr>
+        <tr><th scope="row">Antenna tilt (°)</th><td>{{ object.antenna_tilt_deg|placeholder }}</td></tr>
+        <tr><th scope="row">Transmit mode</th><td>{{ object.transmit_mode|placeholder }}</td></tr>
+        <tr><th scope="row">Radio code</th><td>{{ object.radio_code|placeholder }}</td></tr>
+        <tr><th scope="row">Radio manufacturer</th><td>{{ object.radio_manufacturer|placeholder }}</td></tr>
+        <tr><th scope="row">Radio model</th><td>{{ object.radio_model|placeholder }}</td></tr>
+        <tr><th scope="row">Radio description</th><td>{{ object.radio_description|placeholder }}</td></tr>
+        <tr><th scope="row">Stability (%)</th><td>{{ object.stability_percent|placeholder }}</td></tr>
+        <tr><th scope="row">TX frequency (MHz)</th><td>{{ object.tx_frequency_mhz|placeholder }}</td></tr>
+        <tr><th scope="row">Polarization</th><td>{{ object.polarization|placeholder }}</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h5 class="card-header">Power / RSL / Loss</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Nominal power / RSL (dBm)</th><td>{{ object.nominal_power_dbm|placeholder }} / {{ object.nominal_rsl_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">Coordinated power / RSL (dBm)</th><td>{{ object.coordinated_power_dbm|placeholder }} / {{ object.coordinated_rsl_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">Maximum power / RSL (dBm)</th><td>{{ object.maximum_power_dbm|placeholder }} / {{ object.maximum_rsl_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">Fixed loss common / TX / RX (dB)</th><td>{{ object.fixed_loss_common_db|placeholder }} / {{ object.fixed_loss_tx_db|placeholder }} / {{ object.fixed_loss_rx_db|placeholder }}</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

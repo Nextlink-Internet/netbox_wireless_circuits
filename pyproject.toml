@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netbox-wireless-circuits"
+version = "0.1.0"
+description = "NetBox plugin for tracking licensed microwave and millimeter-wave wireless links as native Circuits."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Nextlink Internet", email = "engineering@nextlinkinternet.com" },
+]
+keywords = ["netbox", "netbox-plugin", "wireless", "microwave", "circuits"]
+classifiers = [
+    "Framework :: Django",
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Telecommunications Industry",
+    "License :: OSI Approved :: Apache Software License",
+]
+
+# No runtime dependencies beyond NetBox itself.
+dependencies = []
+
+[project.urls]
+Homepage = "https://nextlinkinternet.com"
+Source = "https://github.com/nextlinkinternet/netbox-wireless-circuits"
+
+[tool.setuptools.packages.find]
+include = ["netbox_wireless_circuits*"]
+
+[tool.setuptools.package-data]
+netbox_wireless_circuits = ["templates/**/*.html"]

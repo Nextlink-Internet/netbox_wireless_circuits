@@ -1,0 +1,45 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-7">
+    <div class="card">
+      <h5 class="card-header">Target Exception</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">Profile</th><td>{{ object.wireless_license_profile|linkify }}</td></tr>
+        <tr><th scope="row">Circuit</th><td>{{ object.wireless_license_profile.circuit|linkify }}</td></tr>
+        <tr>
+          <th scope="row">Active</th>
+          <td>
+            {% if object.is_active %}
+              <span class="badge text-bg-green">Active</span>
+            {% else %}
+              <span class="badge text-bg-gray">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr><th scope="row">Enabled</th><td>{% checkmark object.enabled %}</td></tr>
+        <tr><th scope="row">Suppress alarms</th><td>{% checkmark object.suppress_alarms %}</td></tr>
+        <tr><th scope="row">Adjusted RSL (dBm)</th><td>{{ object.adjusted_rsl_dbm|placeholder }}</td></tr>
+        <tr><th scope="row">Effective date</th><td>{{ object.effective_date|placeholder }}</td></tr>
+        <tr><th scope="row">Expiry date</th><td>{{ object.expiry_date|placeholder }}</td></tr>
+        <tr><th scope="row">Approved by</th><td>{{ object.approved_by|placeholder }}</td></tr>
+      </table>
+    </div>
+    {% include 'inc/panels/tags.html' %}
+  </div>
+  <div class="col col-md-5">
+    <div class="card">
+      <h5 class="card-header">Reason</h5>
+      <div class="card-body">{{ object.reason|linebreaksbr }}</div>
+    </div>
+    {% if object.notes %}
+    <div class="card">
+      <h5 class="card-header">Notes</h5>
+      <div class="card-body">{{ object.notes|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% load helpers %}
+{% with profile=profile|default:object %}
+<div class="row">
+  <div class="col col-md-6">
+    {% include 'netbox_wireless_circuits/inc/endpoint_card.html' with endpoint=endpoint_a side='A' profile=profile %}
+  </div>
+  <div class="col col-md-6">
+    {% include 'netbox_wireless_circuits/inc/endpoint_card.html' with endpoint=endpoint_z side='Z' profile=profile %}
+  </div>
+</div>
+{% endwith %}

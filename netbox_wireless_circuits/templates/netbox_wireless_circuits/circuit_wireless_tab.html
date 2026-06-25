@@ -1,0 +1,57 @@
+{% extends 'generic/object.html' %}
+{% load helpers %}
+
+{% block content %}
+{% if not profile %}
+  <div class="row">
+    <div class="col col-md-12">
+      <div class="card">
+        <div class="card-body text-center text-muted py-5">
+          <p class="h4">No wireless license profile</p>
+          <p>This circuit does not yet have a wireless license profile.</p>
+          <a href="{% url 'plugins:netbox_wireless_circuits:wirelesslicenseprofile_add' %}?circuit={{ object.pk }}"
+             class="btn btn-primary">
+            <i class="mdi mdi-plus-thick"></i> Add Wireless License Profile
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="row">
+    <div class="col col-md-12">
+      <div class="card">
+        <h5 class="card-header">
+          Wireless License
+          <div class="card-actions">
+            <a href="{{ profile.get_absolute_url }}" class="btn btn-sm btn-primary">
+              <i class="mdi mdi-eye"></i> Open profile
+            </a>
+            <a href="{% url 'plugins:netbox_wireless_circuits:wirelesslicenseprofile_edit' pk=profile.pk %}" class="btn btn-sm btn-warning">
+              <i class="mdi mdi-pencil"></i> Edit
+            </a>
+          </div>
+        </h5>
+        <table class="table table-hover attr-table">
+          <tr><th scope="row">Registration status</th><td>{% badge profile.get_registration_status_display bg_color=profile.get_registration_status_color %}</td></tr>
+          <tr><th scope="row">Frequency band</th><td>{{ profile.get_frequency_band_display|placeholder }}</td></tr>
+          <tr><th scope="row">Channel plan (MHz)</th><td>{{ profile.channel_plan_mhz|placeholder }}</td></tr>
+          <tr><th scope="row">PCN number</th><td>{{ profile.pcn_number|placeholder }}</td></tr>
+          <tr><th scope="row">RCN / Link Registration</th><td>{{ profile.rcn_number|placeholder }}</td></tr>
+          <tr><th scope="row">Licensee</th><td>{{ profile.licensee|placeholder }}</td></tr>
+          <tr><th scope="row">Receiver threshold (dBm)</th><td>{{ profile.receiver_threshold_dbm|placeholder }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% include 'netbox_wireless_circuits/inc/endpoints_panel.html' %}
+  {% include 'netbox_wireless_circuits/inc/modulation_panel.html' %}
+
+  <div class="row">
+    <div class="col col-md-12">
+      {% include 'netbox_wireless_circuits/inc/exceptions_panel.html' %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

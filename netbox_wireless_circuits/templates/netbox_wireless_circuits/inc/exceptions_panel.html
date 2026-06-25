@@ -1,0 +1,62 @@
+{% load helpers %}
+{% with profile=profile|default:object %}
+<div class="card">
+  <h5 class="card-header">
+    Target Exceptions &amp; Tolerance
+    <div class="card-actions">
+      <a href="{% url 'plugins:netbox_wireless_circuits:wirelesstargetexception_add' %}?wireless_license_profile={{ profile.pk }}" class="btn btn-sm btn-primary">
+        <i class="mdi mdi-plus-thick"></i> Add Exception
+      </a>
+    </div>
+  </h5>
+  <table class="table table-hover attr-table">
+    <tr>
+      <th scope="row">Global tolerance</th>
+      <td>
+        {% if global_settings.tolerance_enabled %}
+          {{ global_settings.global_tolerance_db }} dB (applied to all links)
+        {% else %}
+          <span class="text-muted">Disabled</span>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+  {% if exceptions %}
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Reason</th>
+          <th>Adjusted RSL</th>
+          <th>Suppress</th>
+          <th>Effective</th>
+          <th>Expires</th>
+          <th>Approved by</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in exceptions %}
+        <tr>
+          <td>
+            <a href="{{ e.get_absolute_url }}">
+              {% if e.is_active %}<span class="badge text-bg-green">Active</span>
+              {% else %}<span class="badge text-bg-gray">Inactive</span>{% endif %}
+            </a>
+          </td>
+          <td>{{ e.reason|truncatechars:60 }}</td>
+          <td>{{ e.adjusted_rsl_dbm|placeholder }}</td>
+          <td>{% checkmark e.suppress_alarms %}</td>
+          <td>{{ e.effective_date|placeholder }}</td>
+          <td>{{ e.expiry_date|placeholder }}</td>
+          <td>{{ e.approved_by|placeholder }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted">No exceptions configured for this link.</div>
+  {% endif %}
+</div>
+{% endwith %}
