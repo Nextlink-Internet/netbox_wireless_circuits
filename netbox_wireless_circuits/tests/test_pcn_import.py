@@ -1,4 +1,6 @@
-from django.test import TestCase
+import tempfile
+
+from django.test import TestCase, override_settings
 
 from circuits.models import Circuit, CircuitType, Provider
 from dcim.models import Site
@@ -147,18 +149,18 @@ class PCNImportMappingTests(TestCase):
         with self.assertRaises(ValueError):
             create_paths(self.provider, self.ctype, data)
 
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
     def test_pcn_pdf_attached_to_profile(self):
+        # Isolated MEDIA_ROOT so the test never writes into the real media dir
+        # (running tests as root would otherwise leave root-owned media subdirs).
         circuit, profile = create_circuit_and_profile(
             cid="MW-PDF", provider=self.provider, circuit_type=self.ctype,
             data={"profile": {}}, pdf_bytes=b"%PDF-1.7 fake pcn", pdf_name="src.pdf",
         )
-        try:
-            self.assertTrue(profile.pcn_document)
-            self.assertTrue(profile.pcn_document.name.endswith(".pdf"))
-            profile.pcn_document.open("rb")
-            self.assertEqual(profile.pcn_document.read(), b"%PDF-1.7 fake pcn")
-        finally:
-            profile.pcn_document.delete(save=False)  # don't leave the test file
+        self.assertTrue(profile.pcn_document)
+        self.assertTrue(profile.pcn_document.name.endswith(".pdf"))
+        profile.pcn_document.open("rb")
+        self.assertEqual(profile.pcn_document.read(), b"%PDF-1.7 fake pcn")
 
     def test_no_pdf_leaves_document_blank(self):
         _, profile = create_circuit_and_profile(
