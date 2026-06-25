@@ -9,6 +9,8 @@ the preview step) is shaped as::
 Unknown keys are ignored and empty values dropped, so a partial / imperfect LLM
 result still imports cleanly and the operator can fix the rest in the preview.
 """
+import logging
+
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.text import slugify
@@ -18,6 +20,8 @@ from .models import (
     WirelessLicenseProfile,
     WirelessModulationTarget,
 )
+
+logger = logging.getLogger("netbox_wireless_circuits")
 
 PROFILE_FIELDS = {
     "pcn_number", "rcn_number", "job_number", "licensee", "call_sign",
@@ -84,12 +88,24 @@ def ensure_circuit_termination(circuit, term_side, site):
 
 
 def _attach_pcn_document(profile, pdf_bytes, pdf_name):
-    """Save the source PCN PDF onto the profile's pcn_document field."""
+    """
+    Save the source PCN PDF onto the profile's pcn_document field. Best-effort:
+    a storage failure (permissions, read-only/full media, etc.) is logged but
+    never aborts the import — the circuit + profile are kept regardless, the PDF
+    just isn't attached. The file is written via Django's storage, which creates
+    the MEDIA_ROOT subdirectories on first use.
+    """
     if not pdf_bytes:
         return
     base = slugify(profile.circuit.cid) or "pcn"
     name = f"{base}.pdf"
-    profile.pcn_document.save(name, ContentFile(pdf_bytes), save=True)
+    try:
+        profile.pcn_document.save(name, ContentFile(pdf_bytes), save=True)
+    except Exception as exc:  # storage/permissions/disk — don't fail the import
+        logger.warning(
+            "netbox_wireless_circuits: could not attach PCN PDF to %s: %s",
+            profile.circuit.cid, exc,
+        )
 
 
 @transaction.atomic
@@ -155,7 +171,6 @@ def create_from_extraction(circuit, data, pdf_bytes=None, pdf_name=None):
     profile = WirelessLicenseProfile.objects.create(
         circuit=circuit, created_via_import=True, **prof_fields
     )
-    _attach_pcn_document(profile, pdf_bytes, pdf_name)
     for ep in (data.get("endpoints") or []):
         fields = _filtered(ep, ENDPOINT_FIELDS)
         # netbox_site is a Site instance injected by the wizard (a per-side
@@ -178,4 +193,7 @@ def create_from_extraction(circuit, data, pdf_bytes=None, pdf_name=None):
             WirelessModulationTarget.objects.create(
                 wireless_license_profile=profile, **fields
             )
+    # Attach the PDF last (best-effort) so a storage hiccup can't strand the
+    # DB work, and nothing is written for a path that errored earlier.
+    _attach_pcn_document(profile, pdf_bytes, pdf_name)
     return profile

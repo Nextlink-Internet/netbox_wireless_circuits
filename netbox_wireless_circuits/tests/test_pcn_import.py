@@ -1,4 +1,5 @@
 import tempfile
+from unittest import mock
 
 from django.test import TestCase, override_settings
 
@@ -161,6 +162,22 @@ class PCNImportMappingTests(TestCase):
         self.assertTrue(profile.pcn_document.name.endswith(".pdf"))
         profile.pcn_document.open("rb")
         self.assertEqual(profile.pcn_document.read(), b"%PDF-1.7 fake pcn")
+
+    def test_pdf_storage_failure_does_not_block_creation(self):
+        # If the media write fails (permissions/disk), the circuit + profile must
+        # still be created — the PDF is best-effort, never a hard dependency.
+        with mock.patch(
+            "netbox_wireless_circuits.pcn_import.ContentFile",
+            side_effect=OSError("simulated permission denied"),
+        ):
+            circuit, profile = create_circuit_and_profile(
+                cid="MW-PDFFAIL", provider=self.provider, circuit_type=self.ctype,
+                data={"profile": {"frequency_band": "11 GHz"}},
+                pdf_bytes=b"%PDF-1.7 x", pdf_name="x.pdf",
+            )
+        self.assertTrue(Circuit.objects.filter(pk=circuit.pk).exists())
+        self.assertEqual(profile.frequency_band, "11 GHz")
+        self.assertFalse(profile.pcn_document)  # attach failed, gracefully skipped
 
     def test_no_pdf_leaves_document_blank(self):
         _, profile = create_circuit_and_profile(
