@@ -1,3 +1,4 @@
+import base64
 import json
 
 from django.contrib import messages
@@ -104,7 +105,15 @@ class WirelessPCNImportView(View):
         if not form.is_valid():
             return render(request, self.template_name, {"stage": "upload", "form": form})
 
-        pdf_bytes = form.cleaned_data["pdf"].read()
+        uploaded = form.cleaned_data["pdf"]
+        pdf_bytes = uploaded.read()
+        # Stash the PDF server-side so step 2 can attach it to each created
+        # profile without re-uploading (kept out of the form to avoid bloating
+        # the POST). Cleared once the circuits are created.
+        request.session["pcn_import_pdf"] = {
+            "b64": base64.b64encode(pdf_bytes).decode(),
+            "name": getattr(uploaded, "name", "pcn.pdf"),
+        }
 
         settings_obj = models.WirelessLLMSettings.load()
         note, note_level = "", "info"
@@ -161,16 +170,29 @@ class WirelessPCNImportView(View):
             except (KeyError, IndexError, TypeError):
                 pass
 
+        # Recover the source PCN PDF stashed in step 1 to attach to each profile.
+        pdf_bytes, pdf_name = None, None
+        stashed = request.session.get("pcn_import_pdf")
+        if stashed:
+            try:
+                pdf_bytes = base64.b64decode(stashed["b64"])
+                pdf_name = stashed.get("name")
+            except Exception:
+                pdf_bytes = None
+
         try:
             results = pcn_import.create_paths(
                 provider=form.cleaned_data["provider"],
                 circuit_type=form.cleaned_data["circuit_type"],
                 data=data,
+                pdf_bytes=pdf_bytes,
+                pdf_name=pdf_name,
             )
         except Exception as exc:
             messages.error(request, f"Could not create the circuit(s): {exc}")
             return render(request, self.template_name, {"stage": "confirm", "form": form})
 
+        request.session.pop("pcn_import_pdf", None)  # done with the stashed PDF
         cids = ", ".join(c.cid for c, _ in results)
         messages.success(
             request,

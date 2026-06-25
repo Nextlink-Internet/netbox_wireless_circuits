@@ -9,7 +9,9 @@ the preview step) is shaped as::
 Unknown keys are ignored and empty values dropped, so a partial / imperfect LLM
 result still imports cleanly and the operator can fix the rest in the preview.
 """
+from django.core.files.base import ContentFile
 from django.db import transaction
+from django.utils.text import slugify
 
 from .models import (
     WirelessCircuitEndpoint,
@@ -81,27 +83,40 @@ def ensure_circuit_termination(circuit, term_side, site):
     return ct
 
 
+def _attach_pcn_document(profile, pdf_bytes, pdf_name):
+    """Save the source PCN PDF onto the profile's pcn_document field."""
+    if not pdf_bytes:
+        return
+    base = slugify(profile.circuit.cid) or "pcn"
+    name = f"{base}.pdf"
+    profile.pcn_document.save(name, ContentFile(pdf_bytes), save=True)
+
+
 @transaction.atomic
-def create_circuit_and_profile(cid, provider, circuit_type, data, status="active"):
+def create_circuit_and_profile(cid, provider, circuit_type, data, status="active",
+                               pdf_bytes=None, pdf_name=None):
     """
     Create a NEW circuit and its wireless profile (+ endpoints + targets) from a
     single path's PCN data, in one atomic step. Returns ``(circuit, profile)``.
+    ``pdf_bytes`` (the source PCN PDF) is retained on the profile if provided.
     """
     from circuits.models import Circuit
 
     circuit = Circuit.objects.create(
         cid=cid, provider=provider, type=circuit_type, status=status,
     )
-    profile = create_from_extraction(circuit, data)
+    profile = create_from_extraction(circuit, data, pdf_bytes=pdf_bytes, pdf_name=pdf_name)
     return circuit, profile
 
 
 @transaction.atomic
-def create_paths(provider, circuit_type, data, status="active"):
+def create_paths(provider, circuit_type, data, status="active",
+                 pdf_bytes=None, pdf_name=None):
     """
     Create a circuit + profile for EACH path in ``data['paths']`` (a PCN PDF may
     hold several). All-or-nothing. Returns a list of ``(circuit, profile)``.
-    Each path must carry a non-empty ``cid``.
+    Each path must carry a non-empty ``cid``. The source PCN PDF (``pdf_bytes``)
+    is attached to every created profile.
     """
     paths = data.get("paths") or []
     if not paths:
@@ -112,13 +127,16 @@ def create_paths(provider, circuit_type, data, status="active"):
         if not cid:
             raise ValueError(f"Path #{idx} is missing a 'cid'.")
         results.append(
-            create_circuit_and_profile(cid, provider, circuit_type, path, status)
+            create_circuit_and_profile(
+                cid, provider, circuit_type, path, status,
+                pdf_bytes=pdf_bytes, pdf_name=pdf_name,
+            )
         )
     return results
 
 
 @transaction.atomic
-def create_from_extraction(circuit, data):
+def create_from_extraction(circuit, data, pdf_bytes=None, pdf_name=None):
     """
     Create a profile (+ endpoints + modulation targets) on ``circuit`` from a
     PCN data dict. Atomic: any model validation error rolls the whole thing back.
@@ -137,6 +155,7 @@ def create_from_extraction(circuit, data):
     profile = WirelessLicenseProfile.objects.create(
         circuit=circuit, created_via_import=True, **prof_fields
     )
+    _attach_pcn_document(profile, pdf_bytes, pdf_name)
     for ep in (data.get("endpoints") or []):
         fields = _filtered(ep, ENDPOINT_FIELDS)
         # netbox_site is a Site instance injected by the wizard (a per-side

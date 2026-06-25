@@ -114,6 +114,14 @@ class WirelessLicenseProfile(NetBoxModel):
     )
 
     source_document = models.URLField(blank=True)
+    # The actual PCN PDF this profile was imported from, retained on the circuit's
+    # wireless record so the source documentation stays attached to the link.
+    pcn_document = models.FileField(
+        upload_to="netbox-wireless-circuits/pcn/",
+        blank=True,
+        verbose_name="PCN document",
+        help_text="The source PCN PDF, kept for documentation.",
+    )
     notes = models.TextField(blank=True)
 
     # Set by the PCN-PDF import wizard, which CREATES the circuit. When true,

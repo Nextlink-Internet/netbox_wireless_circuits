@@ -46,6 +46,14 @@
             {% else %}{{ ''|placeholder }}{% endif %}
           </td>
         </tr>
+        <tr>
+          <th scope="row">PCN document</th>
+          <td>
+            {% if object.pcn_document %}
+              <a href="{{ object.pcn_document.url }}" target="_blank" rel="noopener"><i class="mdi mdi-file-pdf-box"></i> Download PCN PDF</a>
+            {% else %}{{ ''|placeholder }}{% endif %}
+          </td>
+        </tr>
       </table>
     </div>
     {% include 'inc/panels/tags.html' %}

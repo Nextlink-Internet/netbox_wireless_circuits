@@ -147,6 +147,26 @@ class PCNImportMappingTests(TestCase):
         with self.assertRaises(ValueError):
             create_paths(self.provider, self.ctype, data)
 
+    def test_pcn_pdf_attached_to_profile(self):
+        circuit, profile = create_circuit_and_profile(
+            cid="MW-PDF", provider=self.provider, circuit_type=self.ctype,
+            data={"profile": {}}, pdf_bytes=b"%PDF-1.7 fake pcn", pdf_name="src.pdf",
+        )
+        try:
+            self.assertTrue(profile.pcn_document)
+            self.assertTrue(profile.pcn_document.name.endswith(".pdf"))
+            profile.pcn_document.open("rb")
+            self.assertEqual(profile.pcn_document.read(), b"%PDF-1.7 fake pcn")
+        finally:
+            profile.pcn_document.delete(save=False)  # don't leave the test file
+
+    def test_no_pdf_leaves_document_blank(self):
+        _, profile = create_circuit_and_profile(
+            cid="MW-NOPDF", provider=self.provider, circuit_type=self.ctype,
+            data={"profile": {}},
+        )
+        self.assertFalse(profile.pcn_document)
+
     def test_import_sets_created_via_import(self):
         _, profile = create_circuit_and_profile(
             cid="MW-FLAG", provider=self.provider, circuit_type=self.ctype,
