@@ -47,6 +47,11 @@ wireless_circuits_group = MenuGroup(
     label=_("Wireless Circuits"),
     items=(
         _item("wirelesslicenseprofile", _("Wireless License Profiles"), with_import=True),
+        MenuItem(
+            link=f"plugins:{PLUGIN}:pcn_import",
+            link_text=_("Import from PCN PDF"),
+            permissions=[f"{PLUGIN}.add_wirelesslicenseprofile"],
+        ),
         _item("wirelesscircuitendpoint", _("Wireless Circuit Endpoints"), with_import=False),
         _item("wirelessmodulationtarget", _("Wireless Modulation Targets"), with_import=True),
         _item("wirelesstargetexception", _("Target Exceptions"), with_import=False),

@@ -44,6 +44,11 @@ urlpatterns = [
         name="wirelesslicenseprofile_delete",
     ),
     path(
+        "wireless-license-profiles/pcn-import/",
+        views.WirelessPCNImportView.as_view(),
+        name="pcn_import",
+    ),
+    path(
         "wireless-license-profiles/<int:pk>/sync-zabbix/",
         views.WirelessLicenseProfileZabbixSyncView.as_view(),
         name="wirelesslicenseprofile_sync_zabbix",

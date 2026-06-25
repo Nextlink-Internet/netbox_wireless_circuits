@@ -1,0 +1,59 @@
+{% extends 'base/layout.html' %}
+{% load form_helpers %}
+
+{% block title %}Import wireless circuit from PCN PDF{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-10 offset-md-1">
+
+    {% if stage == 'upload' %}
+    <div class="card">
+      <h5 class="card-header">Import from PCN PDF — Step 1: Upload</h5>
+      <div class="card-body">
+        <p class="text-muted">
+          Choose the circuit and upload its PCN PDF. The plugin will attempt to
+          extract the licensed values using your configured LLM provider chain;
+          you'll review and correct everything before anything is saved.
+        </p>
+        <form action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          {% render_form form %}
+          <div class="text-end">
+            <a href="{% url 'plugins:netbox_wireless_circuits:wirelesslicenseprofile_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="mdi mdi-text-box-search"></i> Extract</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="card">
+      <h5 class="card-header">
+        Import from PCN PDF — Step 2: Review &amp; map
+        {% if circuit %}<small class="text-muted">— {{ circuit.cid }}</small>{% endif %}
+      </h5>
+      <div class="card-body">
+        {% if note %}
+        <div class="alert alert-{{ note_level|default:'info' }}">{{ note }}</div>
+        {% endif %}
+        <p class="text-muted">
+          Edit any values the extraction missed or got wrong. Keys map directly to
+          the model fields (<code>profile</code>, <code>endpoints</code>,
+          <code>modulation_targets</code>). Unknown keys and empty values are ignored.
+        </p>
+        <form action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post">
+          {% csrf_token %}
+          {% render_form form %}
+          <div class="text-end">
+            <a href="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" class="btn btn-outline-secondary">Start over</a>
+            <button type="submit" class="btn btn-success"><i class="mdi mdi-content-save"></i> Create profile</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

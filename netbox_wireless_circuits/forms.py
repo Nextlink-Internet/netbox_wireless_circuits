@@ -24,6 +24,8 @@ __all__ = (
     "WirelessTargetExceptionForm",
     "WirelessLLMSettingsForm",
     "WirelessLLMProviderForm",
+    "WirelessPCNUploadForm",
+    "WirelessPCNConfirmForm",
     "WirelessLicenseProfileImportForm",
     "WirelessModulationTargetImportForm",
 )
@@ -222,6 +224,48 @@ class WirelessTargetExceptionForm(NetBoxModelForm):
             "tags",
         )
         # approved_by is set automatically by the view to the acting user.
+
+
+# ---------------------------------------------------------------------------
+# PCN PDF import (LLM-assisted, with manual mapping fallback)
+# ---------------------------------------------------------------------------
+
+class WirelessPCNUploadForm(forms.Form):
+    circuit = DynamicModelChoiceField(
+        queryset=Circuit.objects.filter(wireless_license_profile__isnull=True),
+        label="Circuit",
+        help_text="Circuit to attach the extracted wireless license profile to "
+                  "(only circuits without a profile are listed).",
+    )
+    pdf = forms.FileField(
+        label="PCN PDF",
+        help_text="The PCN document to extract licensed values from.",
+    )
+
+
+class WirelessPCNConfirmForm(forms.Form):
+    """Step 2: review/edit the extracted data (manual mapping) before creating."""
+
+    circuit = forms.ModelChoiceField(
+        queryset=Circuit.objects.all(), widget=forms.HiddenInput,
+    )
+    data_json = forms.CharField(
+        label="Extracted data",
+        widget=forms.Textarea(attrs={"rows": 22, "class": "form-control font-monospace"}),
+        help_text="Review and correct the extracted values before creating. "
+                  "Keys: profile, endpoints[], modulation_targets[].",
+    )
+
+    def clean_data_json(self):
+        import json
+
+        try:
+            data = json.loads(self.cleaned_data["data_json"])
+        except json.JSONDecodeError as exc:
+            raise forms.ValidationError(f"Invalid JSON: {exc}")
+        if not isinstance(data, dict):
+            raise forms.ValidationError("Top-level value must be a JSON object.")
+        return data
 
 
 # ---------------------------------------------------------------------------

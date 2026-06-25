@@ -1,13 +1,15 @@
+import json
+
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import View
 
 from circuits.models import Circuit
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 
-from . import filtersets, forms, models, tables
+from . import filtersets, forms, models, pcn_import, tables
 from .nbxsync_sync import nbxsync_available, sync_enabled, sync_profile
 
 
@@ -32,6 +34,93 @@ class WirelessLicenseProfileView(generic.ObjectView):
             "global_settings": models.WirelessGlobalSettings.load(),
             "zabbix_sync_available": sync_enabled(),
         }
+
+
+class WirelessPCNImportView(View):
+    """
+    Two-step PCN PDF import: upload + LLM extract, then an editable preview
+    (manual variable mapping) before creating the profile and its children.
+    """
+
+    template_name = "netbox_wireless_circuits/pcn_import.html"
+    permission = "netbox_wireless_circuits.add_wirelesslicenseprofile"
+
+    def _check_perm(self, request):
+        if not request.user.has_perm(self.permission):
+            raise PermissionDenied()
+
+    def get(self, request):
+        self._check_perm(request)
+        return render(request, self.template_name, {
+            "stage": "upload",
+            "form": forms.WirelessPCNUploadForm(),
+        })
+
+    def post(self, request):
+        self._check_perm(request)
+        # Step 2: confirm/create from the (possibly hand-edited) data.
+        if "data_json" in request.POST:
+            return self._handle_confirm(request)
+        return self._handle_upload(request)
+
+    def _handle_upload(self, request):
+        form = forms.WirelessPCNUploadForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {"stage": "upload", "form": form})
+
+        circuit = form.cleaned_data["circuit"]
+        pdf_bytes = form.cleaned_data["pdf"].read()
+
+        settings_obj = models.WirelessLLMSettings.load()
+        note, note_level = "", "info"
+        data = pcn_import.SKELETON
+        if settings_obj.pdf_import_enabled:
+            from .llm import ProviderError, build_prompt, extract_from_pdf
+            try:
+                result = extract_from_pdf(
+                    pdf_bytes, prompt=build_prompt(settings_obj.prompt_override)
+                )
+                data = result.data
+                note = f"Extracted via {result.provider} ({result.model}). Review before creating."
+                note_level = "success"
+            except ProviderError as exc:
+                note = (f"Automatic extraction failed — map the fields manually below. "
+                        f"Details: {exc}")
+                note_level = "warning"
+        else:
+            note = ("LLM extraction is disabled (enable it in LLM Settings). "
+                    "Enter the values manually below.")
+            note_level = "warning"
+
+        confirm = forms.WirelessPCNConfirmForm(initial={
+            "circuit": circuit.pk,
+            "data_json": json.dumps(data, indent=2),
+        })
+        return render(request, self.template_name, {
+            "stage": "confirm",
+            "form": confirm,
+            "circuit": circuit,
+            "note": note,
+            "note_level": note_level,
+        })
+
+    def _handle_confirm(self, request):
+        form = forms.WirelessPCNConfirmForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"stage": "confirm", "form": form})
+
+        circuit = form.cleaned_data["circuit"]
+        data = form.cleaned_data["data_json"]
+        try:
+            profile = pcn_import.create_from_extraction(circuit, data)
+        except Exception as exc:
+            messages.error(request, f"Could not create the profile: {exc}")
+            return render(request, self.template_name, {"stage": "confirm", "form": form})
+
+        messages.success(
+            request, f"Created wireless license profile for {circuit.cid} from PCN PDF."
+        )
+        return redirect(profile.get_absolute_url())
 
 
 class WirelessLicenseProfileZabbixSyncView(View):
