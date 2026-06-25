@@ -101,10 +101,10 @@ class NbxsyncMacroSyncTests(TestCase):
             zabbixmacro__macro="{$WL.RSL.WARN}"
         ).exists())
         # Drop expected RSL: WARN/CRIT/EXPECTED values become None -> not desired.
+        # (save() also fires the resync signal; a manual sync confirms the end state.)
         self.target.expected_rsl_dbm = None
         self.target.save()
-        summary = sync_device(self.device, self.settings)
-        self.assertGreaterEqual(summary["macros_deleted"], 1)
+        sync_device(self.device, self.settings)
         self.assertFalse(self._assignments().filter(
             zabbixmacro__macro="{$WL.RSL.WARN}"
         ).exists())
@@ -121,8 +121,12 @@ class NbxsyncMacroSyncTests(TestCase):
         self.assertIn(("wireless-band", "11 GHz"), pairs)
 
     def test_disabled_is_skipped(self):
+        from nbxsync.models import ZabbixMacroAssignment
+
+        # Clear anything a prior enabled save may have synced via signals.
         self.settings.zabbix_sync_enabled = False
-        self.settings.save()
+        self.settings.save()  # disabled -> signal is a no-op
+        ZabbixMacroAssignment.objects.all().delete()
         summary = sync_device(self.device, self.settings)
         self.assertTrue(summary["skipped"])
         self.assertEqual(self._assignments().count(), 0)
