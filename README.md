@@ -589,6 +589,9 @@ Each direction returns:
   "frequency_mhz": "11200.000",
   "top_modulation": "4096 QAM",
   "top_modulation_rank": 100,
+  "carrier_count": 2,
+  "radio_configuration": "2+0",
+  "aggregate_data_rate_kbps": 786432,
   "receiver_threshold_dbm": "-74.0",
   "global_tolerance_db": "2.00",
   "exception": {
