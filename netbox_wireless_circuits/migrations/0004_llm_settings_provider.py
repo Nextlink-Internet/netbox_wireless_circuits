@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('last_updated', models.DateTimeField(auto_now=True, null=True)),
                 ('custom_field_data', models.JSONField(blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder)),
                 ('rank', models.PositiveIntegerField(default=100, help_text='Lower rank is tried first (1 = primary).')),
-                ('provider', models.CharField(max_length=20)),
+                ('provider', models.CharField(choices=[('anthropic', 'Anthropic'), ('gemini', 'Google Gemini'), ('openai', 'OpenAI')], max_length=20)),
                 ('model', models.CharField(help_text='Model identifier, e.g. claude-opus-4-8, gemini-2.5-pro, gpt-4.1.', max_length=100)),
                 ('enabled', models.BooleanField(default=True)),
                 ('notes', models.TextField(blank=True)),
