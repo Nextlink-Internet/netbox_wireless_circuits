@@ -21,10 +21,8 @@ class WirelessCircuitsConfig(PluginConfig):
 
     def ready(self):
         super().ready()
-        # Place the plugin's links inside NetBox's core "Circuits" menu rather
-        # than in a standalone plugin menu.
-        from .navigation import inject_into_circuits_menu
-        inject_into_circuits_menu()
+        # The plugin menu is registered via the `menu` object in navigation.py
+        # (NetBox's supported PluginMenu API); no manual injection needed.
         # Connect signal receivers that mirror design intent into nbxsync
         # (no-ops unless nbxsync is installed and the sync is enabled).
         from . import signals  # noqa: F401
