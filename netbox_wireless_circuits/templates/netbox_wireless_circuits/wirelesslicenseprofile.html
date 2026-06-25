@@ -3,6 +3,18 @@
 {% load plugins %}
 
 {% block content %}
+{% if zabbix_sync_available %}
+<div class="row mb-2">
+  <div class="col col-md-12 text-end">
+    <form action="{% url 'plugins:netbox_wireless_circuits:wirelesslicenseprofile_sync_zabbix' pk=object.pk %}" method="post" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-cyan">
+        <i class="mdi mdi-sync"></i> Sync to Zabbix
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
 <div class="row">
   <div class="col col-md-6">
     <div class="card">

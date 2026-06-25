@@ -167,6 +167,9 @@ class WirelessGlobalSettingsForm(NetBoxModelForm):
         fields = (
             "global_tolerance_db",
             "tolerance_enabled",
+            "zabbix_sync_enabled",
+            "zabbix_macro_prefix",
+            "zabbix_emit_tags",
             "notes",
             "tags",
         )

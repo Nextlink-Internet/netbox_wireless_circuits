@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from ..choices import EndpointSideChoices, ModulationDirectionChoices
+from ..zabbix import effective_critical_rsl, effective_warning_rsl
 from ..filtersets import (
     WirelessCircuitEndpointFilterSet,
     WirelessLicenseProfileFilterSet,
@@ -24,13 +25,6 @@ from .serializers import (
     WirelessModulationTargetSerializer,
     WirelessTargetExceptionSerializer,
 )
-
-
-def _sub(value, amount):
-    """Return value - amount as a string, or None if value is unset."""
-    if value is None:
-        return None
-    return str(value - amount)
 
 
 def _decimal_str(value):
@@ -153,11 +147,11 @@ class WirelessLicenseProfileViewSet(NetBoxModelViewSet):
                     "warning_margin_db": _decimal_str(t.warning_margin_db),
                     "critical_margin_db": _decimal_str(t.critical_margin_db),
                     # expected_rsl - margin - global_tolerance (worse-than = alarm).
-                    "effective_warning_rsl_dbm": _sub(
-                        t.expected_rsl_dbm, (t.warning_margin_db or 0) + tolerance
+                    "effective_warning_rsl_dbm": _decimal_str(
+                        effective_warning_rsl(t, tolerance)
                     ),
-                    "effective_critical_rsl_dbm": _sub(
-                        t.expected_rsl_dbm, (t.critical_margin_db or 0) + tolerance
+                    "effective_critical_rsl_dbm": _decimal_str(
+                        effective_critical_rsl(t, tolerance)
                     ),
                     "alarm_enabled": t.alarm_enabled,
                 }

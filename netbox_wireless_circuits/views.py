@@ -1,8 +1,14 @@
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect
+from django.views.generic import View
+
 from circuits.models import Circuit
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 
 from . import filtersets, forms, models, tables
+from .nbxsync_sync import nbxsync_available, sync_enabled, sync_profile
 
 
 # ---------------------------------------------------------------------------
@@ -24,7 +30,42 @@ class WirelessLicenseProfileView(generic.ObjectView):
             ).order_by("-modulation_rank"),
             "exceptions": instance.exceptions.all(),
             "global_settings": models.WirelessGlobalSettings.load(),
+            "zabbix_sync_available": sync_enabled(),
         }
+
+
+class WirelessLicenseProfileZabbixSyncView(View):
+    """POST action: push this link's expected values to nbxsync Zabbix macros."""
+
+    def post(self, request, pk):
+        profile = get_object_or_404(models.WirelessLicenseProfile, pk=pk)
+        if not request.user.has_perm(
+            "netbox_wireless_circuits.change_wirelesslicenseprofile"
+        ):
+            raise PermissionDenied()
+
+        if not nbxsync_available():
+            messages.error(request, "nbxsync is not installed; cannot sync to Zabbix.")
+        elif not sync_enabled():
+            messages.warning(
+                request,
+                "Zabbix macro sync is disabled in Wireless Global Settings.",
+            )
+        else:
+            results = sync_profile(profile)
+            macros = sum(r["macros_written"] for r in results)
+            missing = sorted({m for r in results for m in r["macros_missing_def"]})
+            messages.success(
+                request,
+                f"Synced {len(results)} device(s): {macros} macro assignment(s).",
+            )
+            if missing:
+                messages.warning(
+                    request,
+                    "Missing macro definitions (define them in your Zabbix "
+                    "wireless template): " + ", ".join(missing),
+                )
+        return redirect(profile.get_absolute_url())
 
 
 class WirelessLicenseProfileListView(generic.ObjectListView):

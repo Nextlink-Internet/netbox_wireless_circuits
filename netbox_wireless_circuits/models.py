@@ -404,6 +404,35 @@ class WirelessGlobalSettings(NetBoxModel):
         default=True,
         help_text="If unset, the global tolerance is ignored (treated as 0).",
     )
+
+    # --- nbxsync (Zabbix) integration ---
+    zabbix_sync_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Zabbix macro sync enabled",
+        help_text=(
+            "When enabled (and the nbxsync plugin is installed), the plugin "
+            "writes per-link expected values to the receiving radio's Zabbix "
+            "host as user macros via nbxsync. Off by default."
+        ),
+    )
+    zabbix_macro_prefix = models.CharField(
+        max_length=50,
+        default="WL",
+        verbose_name="Zabbix macro prefix",
+        help_text=(
+            "Prefix for the generated Zabbix user macros, e.g. 'WL' produces "
+            "{$WL.RSL.WARN}. Must match the macro names defined in your Zabbix "
+            "wireless template."
+        ),
+    )
+    zabbix_emit_tags = models.BooleanField(
+        default=True,
+        verbose_name="Emit Zabbix tags",
+        help_text=(
+            "Also attach nbxsync tags to the radio host classifying it as a "
+            "wireless circuit (and its band) for template/trigger targeting."
+        ),
+    )
     notes = models.TextField(blank=True)
 
     class Meta:

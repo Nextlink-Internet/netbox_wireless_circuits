@@ -44,6 +44,11 @@ urlpatterns = [
         name="wirelesslicenseprofile_delete",
     ),
     path(
+        "wireless-license-profiles/<int:pk>/sync-zabbix/",
+        views.WirelessLicenseProfileZabbixSyncView.as_view(),
+        name="wirelesslicenseprofile_sync_zabbix",
+    ),
+    path(
         "wireless-license-profiles/<int:pk>/changelog/",
         ObjectChangeLogView.as_view(),
         name="wirelesslicenseprofile_changelog",

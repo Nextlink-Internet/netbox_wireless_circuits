@@ -25,6 +25,9 @@ class WirelessCircuitsConfig(PluginConfig):
         # than in a standalone plugin menu.
         from .navigation import inject_into_circuits_menu
         inject_into_circuits_menu()
+        # Connect signal receivers that mirror design intent into nbxsync
+        # (no-ops unless nbxsync is installed and the sync is enabled).
+        from . import signals  # noqa: F401
 
 
 config = WirelessCircuitsConfig

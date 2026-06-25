@@ -194,6 +194,57 @@ re-derive them.
 
 ---
 
+## Zabbix integration via nbxsync
+
+NetBox is the system of record; the actual monitoring lives in Zabbix. This
+plugin integrates with [**nbxsync**](https://github.com/OpensourceICTSolutions/nbxsync)
+to push each link's expected values to the **receiving radio's Zabbix host** as
+**user macros**, so your Zabbix template can alarm against them. The standalone
+`/zabbix/` REST endpoint (below) remains available as a secondary consumer.
+
+**How it works**
+
+- A radio reports its own received signal level, so a direction's thresholds are
+  written to the **receiver's** device: `A_TO_Z` → side Z's device, `Z_TO_A` →
+  side A's. The device is taken from `WirelessCircuitEndpoint.netbox_device`.
+- For each link the plugin computes the effective values (after global tolerance
+  and any active exception) and writes these macros (default prefix `WL`):
+
+  | Macro | Meaning |
+  |-------|---------|
+  | `{$WL.RSL.EXPECTED}` | expected RSL of the top enabled modulation |
+  | `{$WL.RSL.WARN}` / `{$WL.RSL.CRIT}` | effective warning / critical RSL |
+  | `{$WL.RSL.ADJUSTED}` | agreed RSL from an active exception (if set) |
+  | `{$WL.MOD.TOP}` / `{$WL.MOD.TOP_RANK}` | top expected modulation + rank |
+  | `{$WL.ALARM.SUPPRESS}` | `1` if an active exception suppresses alarms |
+  | `{$WL.CID}` | circuit CID |
+
+- On a multi-radio host, macros carry a **context** (the interface name), e.g.
+  `{$WL.RSL.WARN:radio0}`.
+- The plugin also attaches nbxsync **tags** (`wireless-circuit`, `wireless-band`)
+  to classify the host for template/trigger targeting.
+
+**Ownership** — the `{$WL.*}` macro **definitions** live in *your* Zabbix
+"wireless" template (imported into nbxsync); the plugin only writes the per-device
+**values** referencing them by name. Tags are owned by the plugin. If a macro
+definition is missing, that macro is skipped and reported (the template hasn't
+been imported yet).
+
+**Enabling it**
+
+1. Install nbxsync and add a ZabbixServer; import your wireless template.
+2. In **Wireless Circuits → Global Settings**, turn on **Zabbix macro sync**
+   (and optionally adjust the macro **prefix** / tag emission).
+3. Sync happens automatically on change (Django signals). For a one-time
+   backfill, use the **Sync to Zabbix** button on a profile, or:
+
+   ```bash
+   python manage.py sync_wireless_zabbix
+   ```
+
+The integration is a **soft dependency**: with nbxsync absent or the sync
+disabled (the default), the plugin behaves exactly as before.
+
 ## REST API
 
 All endpoints are mounted under `/api/plugins/wireless-circuits/`.
