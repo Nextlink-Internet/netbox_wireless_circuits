@@ -33,8 +33,9 @@ TARGET_FIELDS = {
     "expected_rsl_dbm", "emission_designator", "radio_model",
 }
 
-# Empty template for fully-manual entry when extraction is off or fails.
-SKELETON = {
+# Empty template for one path; a PDF may contain several.
+PATH_SKELETON = {
+    "cid": None,
     "profile": {k: None for k in sorted(PROFILE_FIELDS)},
     "endpoints": [
         {k: ("A" if k == "side" else None) for k in sorted(ENDPOINT_FIELDS)},
@@ -44,6 +45,9 @@ SKELETON = {
         {k: None for k in sorted(TARGET_FIELDS)},
     ],
 }
+
+# Top-level skeleton for fully-manual entry when extraction is off or fails.
+SKELETON = {"paths": [PATH_SKELETON]}
 
 
 def _filtered(d, allowed):
@@ -56,8 +60,8 @@ def _filtered(d, allowed):
 @transaction.atomic
 def create_circuit_and_profile(cid, provider, circuit_type, data, status="active"):
     """
-    Create a NEW circuit and its wireless profile (+ endpoints + targets) from
-    PCN data in one atomic step. Returns ``(circuit, profile)``.
+    Create a NEW circuit and its wireless profile (+ endpoints + targets) from a
+    single path's PCN data, in one atomic step. Returns ``(circuit, profile)``.
     """
     from circuits.models import Circuit
 
@@ -66,6 +70,27 @@ def create_circuit_and_profile(cid, provider, circuit_type, data, status="active
     )
     profile = create_from_extraction(circuit, data)
     return circuit, profile
+
+
+@transaction.atomic
+def create_paths(provider, circuit_type, data, status="active"):
+    """
+    Create a circuit + profile for EACH path in ``data['paths']`` (a PCN PDF may
+    hold several). All-or-nothing. Returns a list of ``(circuit, profile)``.
+    Each path must carry a non-empty ``cid``.
+    """
+    paths = data.get("paths") or []
+    if not paths:
+        raise ValueError("No paths to import (expected a non-empty 'paths' list).")
+    results = []
+    for idx, path in enumerate(paths, start=1):
+        cid = (path.get("cid") or "").strip()
+        if not cid:
+            raise ValueError(f"Path #{idx} is missing a 'cid'.")
+        results.append(
+            create_circuit_and_profile(cid, provider, circuit_type, path, status)
+        )
+    return results
 
 
 @transaction.atomic

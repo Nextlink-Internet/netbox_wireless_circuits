@@ -5,6 +5,7 @@ from circuits.models import Circuit, CircuitType, Provider
 from netbox_wireless_circuits.pcn_import import (
     create_circuit_and_profile,
     create_from_extraction,
+    create_paths,
 )
 
 
@@ -68,3 +69,31 @@ class PCNImportMappingTests(TestCase):
         self.assertEqual(profile.frequency_band, "11 GHz")
         self.assertEqual(profile.endpoints.count(), 2)
         self.assertEqual(profile.modulation_targets.count(), 1)
+
+    def test_create_paths_multi(self):
+        data = {
+            "paths": [
+                {
+                    "cid": "MW-HOP-1",
+                    "profile": {"frequency_band": "11 GHz"},
+                    "endpoints": [{"side": "A"}, {"side": "Z"}],
+                    "modulation_targets": [{"direction": "A_TO_Z", "modulation": "4096 QAM"}],
+                },
+                {
+                    "cid": "MW-HOP-2",
+                    "profile": {"frequency_band": "11 GHz"},
+                    "endpoints": [{"side": "A"}, {"side": "Z"}],
+                    "modulation_targets": [],
+                },
+            ]
+        }
+        results = create_paths(self.provider, self.ctype, data)
+        self.assertEqual(len(results), 2)
+        cids = sorted(c.cid for c, _ in results)
+        self.assertEqual(cids, ["MW-HOP-1", "MW-HOP-2"])
+        self.assertEqual(results[0][1].endpoints.count(), 2)
+
+    def test_create_paths_requires_cid(self):
+        data = {"paths": [{"profile": {}, "endpoints": [], "modulation_targets": []}]}
+        with self.assertRaises(ValueError):
+            create_paths(self.provider, self.ctype, data)

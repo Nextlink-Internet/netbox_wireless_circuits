@@ -92,36 +92,41 @@ def provider_status(provider):
 EXTRACTION_FIELDS = """
 Return a single JSON object (no prose, no markdown fences) shaped as:
 {
-  "suggested_cid": str|null,
-  "profile": {
-    "pcn_number": str|null, "rcn_number": str|null, "job_number": str|null,
-    "licensee": str|null, "call_sign": str|null, "radio_service": str|null,
-    "station_class": str|null, "frequency_band": one of
-      ["6 GHz","11 GHz","18 GHz","23 GHz","70/80 GHz","90 GHz"]|null,
-    "channel_plan_mhz": number|null, "path_length_km": number|null,
-    "path_length_miles": number|null, "atmospheric_loss_db": number|null,
-    "free_space_loss_db": number|null, "receiver_threshold_dbm": number|null
-  },
-  "endpoints": [
-    { "side": "A"|"Z", "pcn_site_name": str|null, "county_state": str|null,
-      "latitude": number|null, "longitude": number|null,
-      "tx_frequency_mhz": number|null, "antenna_model": str|null,
-      "antenna_gain_dbi": number|null, "path_azimuth_deg": number|null,
-      "radio_model": str|null, "polarization": str|null }
-  ],
-  "modulation_targets": [
-    { "direction": "A_TO_Z"|"Z_TO_A",
-      "modulation": one of ["4096 QAM","2048 QAM","1024 QAM","512 QAM",
-        "256 QAM","128 QAM","64 QAM","32 QAM","16 QAM","QPSK","BPSK"],
-      "data_rate_kbps": integer|null, "max_power_dbm": number|null,
-      "eirp_dbm": number|null, "expected_rsl_dbm": number|null,
-      "emission_designator": str|null, "radio_model": str|null }
+  "paths": [
+    {
+      "cid": str|null,
+      "profile": {
+        "pcn_number": str|null, "rcn_number": str|null, "job_number": str|null,
+        "licensee": str|null, "call_sign": str|null, "radio_service": str|null,
+        "station_class": str|null, "frequency_band": one of
+          ["6 GHz","11 GHz","18 GHz","23 GHz","70/80 GHz","90 GHz"]|null,
+        "channel_plan_mhz": number|null, "path_length_km": number|null,
+        "path_length_miles": number|null, "atmospheric_loss_db": number|null,
+        "free_space_loss_db": number|null, "receiver_threshold_dbm": number|null
+      },
+      "endpoints": [
+        { "side": "A"|"Z", "pcn_site_name": str|null, "county_state": str|null,
+          "latitude": number|null, "longitude": number|null,
+          "tx_frequency_mhz": number|null, "antenna_model": str|null,
+          "antenna_gain_dbi": number|null, "path_azimuth_deg": number|null,
+          "radio_model": str|null, "polarization": str|null }
+      ],
+      "modulation_targets": [
+        { "direction": "A_TO_Z"|"Z_TO_A",
+          "modulation": one of ["4096 QAM","2048 QAM","1024 QAM","512 QAM",
+            "256 QAM","128 QAM","64 QAM","32 QAM","16 QAM","QPSK","BPSK"],
+          "data_rate_kbps": integer|null, "max_power_dbm": number|null,
+          "eirp_dbm": number|null, "expected_rsl_dbm": number|null,
+          "emission_designator": str|null, "radio_model": str|null }
+      ]
+    }
   ]
 }
-Use null for anything not present. ``suggested_cid`` is a concise circuit
-identifier you can infer from the document (e.g. a link/path name or job
-number); leave it null if unclear. Side A is the first/primary site, side Z the
-far end. Do not invent values.
+A PCN PDF often contains MULTIPLE path datasheets (commonly one per page / per
+hop). Return ONE entry in "paths" per distinct path. ``cid`` is a concise circuit
+identifier you can infer for that path (a link/path name or job number); leave it
+null if unclear. Use null for anything not present. Side A is the first/primary
+site, side Z the far end. Do not invent values.
 """.strip()
 
 

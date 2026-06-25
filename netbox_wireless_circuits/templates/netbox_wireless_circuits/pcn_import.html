@@ -30,16 +30,18 @@
 
     {% else %}
     <div class="card">
-      <h5 class="card-header">Import from PCN PDF — Step 2: New circuit &amp; review</h5>
+      <h5 class="card-header">Import from PCN PDF — Step 2: New circuits &amp; review</h5>
       <div class="card-body">
         {% if note %}
         <div class="alert alert-{{ note_level|default:'info' }}">{{ note }}</div>
         {% endif %}
         <p class="text-muted">
-          Name the new circuit (CID, provider, type), then edit any values the
-          extraction missed or got wrong. The JSON keys map directly to the model
-          fields (<code>profile</code>, <code>endpoints</code>,
-          <code>modulation_targets</code>); unknown keys and empty values are ignored.
+          Pick the provider and circuit type (applied to every path), then set each
+          path's <code>cid</code> and correct any values the extraction missed.
+          A PCN PDF may contain several paths under <code>paths</code> — each becomes
+          its own circuit. Per-path keys: <code>cid</code>, <code>profile</code>,
+          <code>endpoints</code>, <code>modulation_targets</code>; unknown keys and
+          empty values are ignored.
         </p>
         <form action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post">
           {% csrf_token %}

@@ -74,7 +74,7 @@ class WirelessPCNImportView(View):
         pdf_bytes = form.cleaned_data["pdf"].read()
 
         settings_obj = models.WirelessLLMSettings.load()
-        note, note_level, suggested_cid = "", "info", ""
+        note, note_level = "", "info"
         data = dict(pcn_import.SKELETON)
         if settings_obj.pdf_import_enabled:
             from .llm import ProviderError, build_prompt, extract_from_pdf
@@ -83,7 +83,9 @@ class WirelessPCNImportView(View):
                     pdf_bytes, prompt=build_prompt(settings_obj.prompt_override)
                 )
                 data = result.data
-                note = f"Extracted via {result.provider} ({result.model}). Review before creating."
+                count = len(data.get("paths", [])) if isinstance(data, dict) else 0
+                note = (f"Extracted {count} path(s) via {result.provider} "
+                        f"({result.model}). Set each CID and review before creating.")
                 note_level = "success"
             except ProviderError as exc:
                 note = (f"Automatic extraction failed — map the fields manually below. "
@@ -91,16 +93,10 @@ class WirelessPCNImportView(View):
                 note_level = "warning"
         else:
             note = ("LLM extraction is disabled (enable it in LLM Settings). "
-                    "Enter the values manually below.")
+                    "Enter the path(s) manually below.")
             note_level = "warning"
 
-        # A suggested CID may be proposed by the model; it's not a model field, so
-        # pull it out for the CID field and keep data_json to the importable shape.
-        if isinstance(data, dict):
-            suggested_cid = data.pop("suggested_cid", "") or ""
-
         confirm = forms.WirelessPCNConfirmForm(initial={
-            "cid": suggested_cid,
             "data_json": json.dumps(data, indent=2),
         })
         return render(request, self.template_name, {
@@ -116,21 +112,23 @@ class WirelessPCNImportView(View):
             return render(request, self.template_name, {"stage": "confirm", "form": form})
 
         try:
-            circuit, profile = pcn_import.create_circuit_and_profile(
-                cid=form.cleaned_data["cid"],
+            results = pcn_import.create_paths(
                 provider=form.cleaned_data["provider"],
                 circuit_type=form.cleaned_data["circuit_type"],
                 data=form.cleaned_data["data_json"],
             )
         except Exception as exc:
-            messages.error(request, f"Could not create the circuit / profile: {exc}")
+            messages.error(request, f"Could not create the circuit(s): {exc}")
             return render(request, self.template_name, {"stage": "confirm", "form": form})
 
+        cids = ", ".join(c.cid for c, _ in results)
         messages.success(
             request,
-            f"Created circuit {circuit.cid} with its wireless license profile from the PCN PDF.",
+            f"Created {len(results)} circuit(s) from the PCN PDF: {cids}.",
         )
-        return redirect(profile.get_absolute_url())
+        if len(results) == 1:
+            return redirect(results[0][1].get_absolute_url())
+        return redirect("plugins:netbox_wireless_circuits:wirelesslicenseprofile_list")
 
 
 class WirelessLicenseProfileZabbixSyncView(View):

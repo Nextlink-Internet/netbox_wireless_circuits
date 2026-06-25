@@ -240,26 +240,25 @@ class WirelessPCNUploadForm(forms.Form):
 
 class WirelessPCNConfirmForm(forms.Form):
     """
-    Step 2: name the new circuit and review/edit the extracted wireless data
-    (manual mapping) before everything is created.
+    Step 2: choose the shared provider/type and review/edit the extracted data
+    (manual mapping) before the circuits are created. A PCN PDF may contain
+    several paths; each becomes its own circuit and carries its own ``cid``.
     """
 
-    cid = forms.CharField(
-        label="Circuit ID (CID)", max_length=100,
-        help_text="Identifier for the new circuit (prefilled from the PDF if found).",
-    )
     provider = DynamicModelChoiceField(
         queryset=Provider.objects.all(), label="Provider",
-        help_text="Provider / licensing context for the new circuit.",
+        help_text="Provider / licensing context applied to every path's circuit.",
     )
     circuit_type = DynamicModelChoiceField(
         queryset=CircuitType.objects.all(), label="Circuit type",
+        help_text="Circuit type applied to every path's circuit.",
     )
     data_json = forms.CharField(
-        label="Extracted data",
-        widget=forms.Textarea(attrs={"rows": 22, "class": "form-control font-monospace"}),
-        help_text="Review and correct the extracted values before creating. "
-                  "Keys: profile, endpoints[], modulation_targets[].",
+        label="Extracted paths",
+        widget=forms.Textarea(attrs={"rows": 26, "class": "form-control font-monospace"}),
+        help_text="One entry per path under \"paths\". Set each path's \"cid\" and "
+                  "correct any values; keys: cid, profile, endpoints[], "
+                  "modulation_targets[].",
     )
 
     def clean_data_json(self):
