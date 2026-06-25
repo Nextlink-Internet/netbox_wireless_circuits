@@ -54,6 +54,21 @@ def _filtered(d, allowed):
 
 
 @transaction.atomic
+def create_circuit_and_profile(cid, provider, circuit_type, data, status="active"):
+    """
+    Create a NEW circuit and its wireless profile (+ endpoints + targets) from
+    PCN data in one atomic step. Returns ``(circuit, profile)``.
+    """
+    from circuits.models import Circuit
+
+    circuit = Circuit.objects.create(
+        cid=cid, provider=provider, type=circuit_type, status=status,
+    )
+    profile = create_from_extraction(circuit, data)
+    return circuit, profile
+
+
+@transaction.atomic
 def create_from_extraction(circuit, data):
     """
     Create a profile (+ endpoints + modulation targets) on ``circuit`` from a

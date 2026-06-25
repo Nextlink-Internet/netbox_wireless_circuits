@@ -2,15 +2,20 @@ from django.test import TestCase
 
 from circuits.models import Circuit, CircuitType, Provider
 
-from netbox_wireless_circuits.pcn_import import create_from_extraction
+from netbox_wireless_circuits.pcn_import import (
+    create_circuit_and_profile,
+    create_from_extraction,
+)
 
 
 class PCNImportMappingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        provider = Provider.objects.create(name="Comsearch", slug="comsearch")
-        ctype = CircuitType.objects.create(name="Microwave", slug="microwave")
-        cls.circuit = Circuit.objects.create(cid="MW-PCN", provider=provider, type=ctype)
+        cls.provider = Provider.objects.create(name="Comsearch", slug="comsearch")
+        cls.ctype = CircuitType.objects.create(name="Microwave", slug="microwave")
+        cls.circuit = Circuit.objects.create(
+            cid="MW-PCN", provider=cls.provider, type=cls.ctype
+        )
 
     def test_creates_profile_endpoints_targets(self):
         data = {
@@ -47,3 +52,19 @@ class PCNImportMappingTests(TestCase):
         profile = create_from_extraction(self.circuit, {"profile": {}})
         self.assertEqual(profile.circuit, self.circuit)
         self.assertEqual(profile.endpoints.count(), 0)
+
+    def test_create_circuit_and_profile_wizard(self):
+        data = {
+            "profile": {"frequency_band": "11 GHz"},
+            "endpoints": [{"side": "A"}, {"side": "Z"}],
+            "modulation_targets": [{"direction": "A_TO_Z", "modulation": "256 QAM"}],
+        }
+        circuit, profile = create_circuit_and_profile(
+            cid="MW-NEW-001", provider=self.provider, circuit_type=self.ctype, data=data,
+        )
+        self.assertEqual(circuit.cid, "MW-NEW-001")
+        self.assertEqual(circuit.provider, self.provider)
+        self.assertEqual(profile.circuit, circuit)
+        self.assertEqual(profile.frequency_band, "11 GHz")
+        self.assertEqual(profile.endpoints.count(), 2)
+        self.assertEqual(profile.modulation_targets.count(), 1)

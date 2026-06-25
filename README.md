@@ -405,11 +405,17 @@ modulation ladder) from a **PCN PDF** using an LLM, for review before saving.
 - **Optional SDKs** — `pip install netbox-wireless-circuits[llm]`; a provider
   whose SDK isn't installed is skipped.
 - Enable it under **Wireless Circuits → LLM Settings**, then use **Wireless
-  Circuits → Import from PCN PDF**: pick the circuit, upload the PDF, **review and
-  correct** the extracted values (a manual mapping step — nothing is saved until
-  you confirm), then create the profile, endpoints, and modulation targets. If
+  Circuits → Import from PCN PDF** — a wizard that builds a **new circuit** from
+  the document: upload the PDF, then on the review step **name the new circuit**
+  (CID / provider / type) and **correct** the extracted values (a manual mapping
+  step — nothing is saved until you confirm). On confirm it creates the circuit,
+  its wireless profile, the A/Z endpoints, and the modulation targets. If
   extraction is disabled or every provider fails, the same screen lets you enter
-  the values manually.
+  everything manually.
+
+Endpoints and modulation targets are **per-circuit** and are managed from the
+circuit's **Wireless License** tab / the profile page (add buttons there), not as
+global list menus.
 
 ## Roadmap
 

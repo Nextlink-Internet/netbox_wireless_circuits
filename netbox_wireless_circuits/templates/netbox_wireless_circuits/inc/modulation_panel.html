@@ -1,9 +1,11 @@
 {% load helpers %}
+{% with profile=profile|default:object %}
 <div class="row">
   <div class="col col-md-6">
-    {% include 'netbox_wireless_circuits/inc/modulation_table.html' with targets=mod_a_to_z direction_label='A → Z' %}
+    {% include 'netbox_wireless_circuits/inc/modulation_table.html' with targets=mod_a_to_z direction_label='A → Z' direction='A_TO_Z' profile=profile %}
   </div>
   <div class="col col-md-6">
-    {% include 'netbox_wireless_circuits/inc/modulation_table.html' with targets=mod_z_to_a direction_label='Z → A' %}
+    {% include 'netbox_wireless_circuits/inc/modulation_table.html' with targets=mod_z_to_a direction_label='Z → A' direction='Z_TO_A' profile=profile %}
   </div>
 </div>
+{% endwith %}

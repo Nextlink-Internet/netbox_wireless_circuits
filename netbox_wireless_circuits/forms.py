@@ -1,6 +1,6 @@
 from django import forms
 
-from circuits.models import Circuit
+from circuits.models import Circuit, CircuitType, Provider
 from dcim.models import Device, Interface, Site
 from netbox.forms import NetBoxModelForm, NetBoxModelImportForm
 from utilities.forms.fields import CSVChoiceField, CSVModelChoiceField, DynamicModelChoiceField
@@ -231,23 +231,29 @@ class WirelessTargetExceptionForm(NetBoxModelForm):
 # ---------------------------------------------------------------------------
 
 class WirelessPCNUploadForm(forms.Form):
-    circuit = DynamicModelChoiceField(
-        queryset=Circuit.objects.filter(wireless_license_profile__isnull=True),
-        label="Circuit",
-        help_text="Circuit to attach the extracted wireless license profile to "
-                  "(only circuits without a profile are listed).",
-    )
     pdf = forms.FileField(
         label="PCN PDF",
-        help_text="The PCN document to extract licensed values from.",
+        help_text="The PCN document to extract licensed values from. A new "
+                  "circuit is created from it in the next step.",
     )
 
 
 class WirelessPCNConfirmForm(forms.Form):
-    """Step 2: review/edit the extracted data (manual mapping) before creating."""
+    """
+    Step 2: name the new circuit and review/edit the extracted wireless data
+    (manual mapping) before everything is created.
+    """
 
-    circuit = forms.ModelChoiceField(
-        queryset=Circuit.objects.all(), widget=forms.HiddenInput,
+    cid = forms.CharField(
+        label="Circuit ID (CID)", max_length=100,
+        help_text="Identifier for the new circuit (prefilled from the PDF if found).",
+    )
+    provider = DynamicModelChoiceField(
+        queryset=Provider.objects.all(), label="Provider",
+        help_text="Provider / licensing context for the new circuit.",
+    )
+    circuit_type = DynamicModelChoiceField(
+        queryset=CircuitType.objects.all(), label="Circuit type",
     )
     data_json = forms.CharField(
         label="Extracted data",

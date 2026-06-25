@@ -43,10 +43,13 @@ class WirelessPCNImportView(View):
     """
 
     template_name = "netbox_wireless_circuits/pcn_import.html"
-    permission = "netbox_wireless_circuits.add_wirelesslicenseprofile"
+    permissions = (
+        "circuits.add_circuit",
+        "netbox_wireless_circuits.add_wirelesslicenseprofile",
+    )
 
     def _check_perm(self, request):
-        if not request.user.has_perm(self.permission):
+        if not all(request.user.has_perm(p) for p in self.permissions):
             raise PermissionDenied()
 
     def get(self, request):
@@ -68,12 +71,11 @@ class WirelessPCNImportView(View):
         if not form.is_valid():
             return render(request, self.template_name, {"stage": "upload", "form": form})
 
-        circuit = form.cleaned_data["circuit"]
         pdf_bytes = form.cleaned_data["pdf"].read()
 
         settings_obj = models.WirelessLLMSettings.load()
-        note, note_level = "", "info"
-        data = pcn_import.SKELETON
+        note, note_level, suggested_cid = "", "info", ""
+        data = dict(pcn_import.SKELETON)
         if settings_obj.pdf_import_enabled:
             from .llm import ProviderError, build_prompt, extract_from_pdf
             try:
@@ -92,14 +94,18 @@ class WirelessPCNImportView(View):
                     "Enter the values manually below.")
             note_level = "warning"
 
+        # A suggested CID may be proposed by the model; it's not a model field, so
+        # pull it out for the CID field and keep data_json to the importable shape.
+        if isinstance(data, dict):
+            suggested_cid = data.pop("suggested_cid", "") or ""
+
         confirm = forms.WirelessPCNConfirmForm(initial={
-            "circuit": circuit.pk,
+            "cid": suggested_cid,
             "data_json": json.dumps(data, indent=2),
         })
         return render(request, self.template_name, {
             "stage": "confirm",
             "form": confirm,
-            "circuit": circuit,
             "note": note,
             "note_level": note_level,
         })
@@ -109,16 +115,20 @@ class WirelessPCNImportView(View):
         if not form.is_valid():
             return render(request, self.template_name, {"stage": "confirm", "form": form})
 
-        circuit = form.cleaned_data["circuit"]
-        data = form.cleaned_data["data_json"]
         try:
-            profile = pcn_import.create_from_extraction(circuit, data)
+            circuit, profile = pcn_import.create_circuit_and_profile(
+                cid=form.cleaned_data["cid"],
+                provider=form.cleaned_data["provider"],
+                circuit_type=form.cleaned_data["circuit_type"],
+                data=form.cleaned_data["data_json"],
+            )
         except Exception as exc:
-            messages.error(request, f"Could not create the profile: {exc}")
+            messages.error(request, f"Could not create the circuit / profile: {exc}")
             return render(request, self.template_name, {"stage": "confirm", "form": form})
 
         messages.success(
-            request, f"Created wireless license profile for {circuit.cid} from PCN PDF."
+            request,
+            f"Created circuit {circuit.cid} with its wireless license profile from the PCN PDF.",
         )
         return redirect(profile.get_absolute_url())
 

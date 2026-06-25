@@ -92,6 +92,7 @@ def provider_status(provider):
 EXTRACTION_FIELDS = """
 Return a single JSON object (no prose, no markdown fences) shaped as:
 {
+  "suggested_cid": str|null,
   "profile": {
     "pcn_number": str|null, "rcn_number": str|null, "job_number": str|null,
     "licensee": str|null, "call_sign": str|null, "radio_service": str|null,
@@ -117,7 +118,9 @@ Return a single JSON object (no prose, no markdown fences) shaped as:
       "emission_designator": str|null, "radio_model": str|null }
   ]
 }
-Use null for anything not present. Side A is the first/primary site, side Z the
+Use null for anything not present. ``suggested_cid`` is a concise circuit
+identifier you can infer from the document (e.g. a link/path name or job
+number); leave it null if unclear. Side A is the first/primary site, side Z the
 far end. Do not invent values.
 """.strip()
 
