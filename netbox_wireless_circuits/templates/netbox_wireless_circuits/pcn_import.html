@@ -17,14 +17,29 @@
           name the new circuit and review / correct everything before anything is
           saved.
         </p>
-        <form action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post" enctype="multipart/form-data">
+        <form id="pcn-upload-form" action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post" enctype="multipart/form-data">
           {% csrf_token %}
           {% render_form form %}
           <div class="text-end">
             <a href="{% url 'plugins:netbox_wireless_circuits:wirelesslicenseprofile_list' %}" class="btn btn-outline-secondary">Cancel</a>
-            <button type="submit" class="btn btn-primary"><i class="mdi mdi-text-box-search"></i> Extract</button>
+            <button id="pcn-extract-btn" type="submit" class="btn btn-primary"><i class="mdi mdi-text-box-search"></i> Extract</button>
           </div>
         </form>
+
+        <div id="pcn-progress" class="mt-3" hidden>
+          <div class="d-flex align-items-center mb-2">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+            <strong>Extracting licensed values from the PDF…</strong>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+          </div>
+          <small class="text-muted">
+            This calls your LLM provider and can take up to a minute for an
+            image-only PDF. The page reloads automatically when it finishes —
+            please don't navigate away or resubmit.
+          </small>
+        </div>
       </div>
     </div>
 
@@ -43,18 +58,52 @@
           <code>endpoints</code>, <code>modulation_targets</code>; unknown keys and
           empty values are ignored.
         </p>
-        <form action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post">
+        <form id="pcn-confirm-form" action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post">
           {% csrf_token %}
           {% render_form form %}
           <div class="text-end">
             <a href="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" class="btn btn-outline-secondary">Start over</a>
-            <button type="submit" class="btn btn-success"><i class="mdi mdi-content-save"></i> Create profile</button>
+            <button id="pcn-create-btn" type="submit" class="btn btn-success"><i class="mdi mdi-content-save"></i> Create profile</button>
           </div>
         </form>
+
+        <div id="pcn-create-progress" class="mt-3" hidden>
+          <div class="d-flex align-items-center mb-2">
+            <div class="spinner-border spinner-border-sm text-success me-2" role="status"></div>
+            <strong>Creating circuits…</strong>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+          </div>
+        </div>
       </div>
     </div>
     {% endif %}
 
   </div>
 </div>
+
+<script>
+  // Show an indeterminate progress bar while a (potentially slow) submit is in
+  // flight. The synchronous POST keeps this page rendered until the server
+  // responds, so the bar stays visible the whole time.
+  (function () {
+    function wire(formId, btnId, progressId, busyText) {
+      var form = document.getElementById(formId);
+      var btn = document.getElementById(btnId);
+      var prog = document.getElementById(progressId);
+      if (!form || !btn || !prog) { return; }
+      form.addEventListener('submit', function () {
+        prog.hidden = false;
+        // Defer disabling so the in-flight submission still proceeds.
+        setTimeout(function () {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>' + busyText;
+        }, 0);
+      });
+    }
+    wire('pcn-upload-form', 'pcn-extract-btn', 'pcn-progress', 'Extracting…');
+    wire('pcn-confirm-form', 'pcn-create-btn', 'pcn-create-progress', 'Creating…');
+  })();
+</script>
 {% endblock %}
