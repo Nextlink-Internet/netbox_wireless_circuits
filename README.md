@@ -402,8 +402,19 @@ layout (appended to the extraction prompt).
 2. The review step shows shared **Provider** / **Circuit type** selectors and an
    editable `paths[]` structure (one entry per detected path). Set each path's
    **`cid`** and correct anything the model missed. *Nothing is saved yet.*
+
+   This step also shows a card titled **"Assign each side to a NetBox site
+   (optional)"** with one Site dropdown per side (A/Z) of every extracted path.
+   These dropdowns are built dynamically once extraction reveals how many paths
+   there are. Assignment is **optional**: a side is **pre-selected** when its
+   extracted `pcn_site_name` exactly matches (case-insensitive) an existing
+   NetBox Site name, otherwise it's left blank. The chosen Site is written to the
+   endpoint's `netbox_site` field; leaving a side blank leaves that endpoint's
+   site **null**. You can always set or change the site later on each
+   circuit/endpoint.
 3. Click **Create** — each path becomes a circuit + wireless profile + A/Z
-   endpoints + modulation targets, created **atomically**.
+   endpoints + modulation targets (with any chosen sites applied), created
+   **atomically**.
 
 If extraction is disabled or every provider fails, the same screen appears with an
 empty skeleton so you can enter the path(s) by hand.
