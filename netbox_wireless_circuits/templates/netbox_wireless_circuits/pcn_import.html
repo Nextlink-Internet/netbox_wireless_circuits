@@ -12,9 +12,10 @@
       <h5 class="card-header">Import from PCN PDF — Step 1: Upload</h5>
       <div class="card-body">
         <p class="text-muted">
-          Choose the circuit and upload its PCN PDF. The plugin will attempt to
-          extract the licensed values using your configured LLM provider chain;
-          you'll review and correct everything before anything is saved.
+          Upload the link's PCN PDF. The plugin attempts to extract the licensed
+          values using your configured LLM provider chain; in the next step you'll
+          name the new circuit and review / correct everything before anything is
+          saved.
         </p>
         <form action="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" method="post" enctype="multipart/form-data">
           {% csrf_token %}
