@@ -10,6 +10,7 @@ from netbox_wireless_circuits.models import (
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
+    WirelessLLMProvider,
     WirelessModulationTarget,
     WirelessTargetException,
 )
@@ -186,6 +187,23 @@ class WirelessAPITests(TestCase):
         # effective_warning = -42 - (3 + 2) = -47
         top = data["modulation_targets"][0]
         self.assertEqual(top["effective_warning_rsl_dbm"], "-47.000")
+
+    # --- LLM config endpoints (serializers must resolve for change logging) ---
+
+    def test_llm_settings_list(self):
+        r = self.client.get(f"{BASE}/wireless-llm-settings/")
+        self.assertEqual(r.status_code, 200)
+
+    def test_llm_provider_create(self):
+        # Exercises change-log serialization on save (the path that 500'd when the
+        # serializer was missing).
+        r = self.client.post(
+            f"{BASE}/wireless-llm-providers/",
+            {"provider": "anthropic", "model": "claude-opus-4-8", "rank": 1},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(WirelessLLMProvider.objects.count(), 1)
 
     def test_zabbix_surfaces_active_exception(self):
         WirelessTargetException.objects.create(

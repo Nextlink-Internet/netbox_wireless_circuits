@@ -10,5 +10,7 @@ router.register("wireless-circuit-endpoints", views.WirelessCircuitEndpointViewS
 router.register("wireless-modulation-targets", views.WirelessModulationTargetViewSet)
 router.register("wireless-global-settings", views.WirelessGlobalSettingsViewSet)
 router.register("wireless-target-exceptions", views.WirelessTargetExceptionViewSet)
+router.register("wireless-llm-settings", views.WirelessLLMSettingsViewSet)
+router.register("wireless-llm-providers", views.WirelessLLMProviderViewSet)
 
 urlpatterns = router.urls

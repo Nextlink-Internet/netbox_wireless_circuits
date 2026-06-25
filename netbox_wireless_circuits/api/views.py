@@ -15,6 +15,8 @@ from ..models import (
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
+    WirelessLLMProvider,
+    WirelessLLMSettings,
     WirelessModulationTarget,
     WirelessTargetException,
 )
@@ -22,6 +24,8 @@ from .serializers import (
     WirelessCircuitEndpointSerializer,
     WirelessGlobalSettingsSerializer,
     WirelessLicenseProfileSerializer,
+    WirelessLLMProviderSerializer,
+    WirelessLLMSettingsSerializer,
     WirelessModulationTargetSerializer,
     WirelessTargetExceptionSerializer,
 )
@@ -188,3 +192,13 @@ class WirelessTargetExceptionViewSet(NetBoxModelViewSet):
     )
     serializer_class = WirelessTargetExceptionSerializer
     filterset_class = WirelessTargetExceptionFilterSet
+
+
+class WirelessLLMSettingsViewSet(NetBoxModelViewSet):
+    queryset = WirelessLLMSettings.objects.prefetch_related("tags")
+    serializer_class = WirelessLLMSettingsSerializer
+
+
+class WirelessLLMProviderViewSet(NetBoxModelViewSet):
+    queryset = WirelessLLMProvider.objects.prefetch_related("tags")
+    serializer_class = WirelessLLMProviderSerializer

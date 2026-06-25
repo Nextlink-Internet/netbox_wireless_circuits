@@ -7,6 +7,8 @@ from ..models import (
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
     WirelessLicenseProfile,
+    WirelessLLMProvider,
+    WirelessLLMSettings,
     WirelessModulationTarget,
     WirelessTargetException,
 )
@@ -17,6 +19,8 @@ __all__ = (
     "WirelessModulationTargetSerializer",
     "WirelessGlobalSettingsSerializer",
     "WirelessTargetExceptionSerializer",
+    "WirelessLLMSettingsSerializer",
+    "WirelessLLMProviderSerializer",
 )
 
 
@@ -71,6 +75,26 @@ class WirelessGlobalSettingsSerializer(NetBoxModelSerializer):
             "notes", "tags", "custom_fields", "created", "last_updated",
         )
         brief_fields = ("id", "url", "display", "global_tolerance_db")
+
+
+class WirelessLLMSettingsSerializer(NetBoxModelSerializer):
+    class Meta:
+        model = WirelessLLMSettings
+        fields = (
+            "id", "url", "display", "pdf_import_enabled", "prompt_override",
+            "notes", "tags", "custom_fields", "created", "last_updated",
+        )
+        brief_fields = ("id", "url", "display", "pdf_import_enabled")
+
+
+class WirelessLLMProviderSerializer(NetBoxModelSerializer):
+    class Meta:
+        model = WirelessLLMProvider
+        fields = (
+            "id", "url", "display", "rank", "provider", "model", "enabled",
+            "notes", "tags", "custom_fields", "created", "last_updated",
+        )
+        brief_fields = ("id", "url", "display", "rank", "provider", "model")
 
 
 class WirelessTargetExceptionSerializer(NetBoxModelSerializer):
