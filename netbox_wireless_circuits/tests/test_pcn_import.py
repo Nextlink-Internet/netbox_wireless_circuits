@@ -65,6 +65,17 @@ class PCNImportMappingTests(TestCase):
         self.assertEqual(ep_a.netbox_site, site)
         self.assertIsNone(ep_z.netbox_site)
 
+    def test_carrier_count_derives_radio_configuration(self):
+        data = {"profile": {"frequency_band": "18 GHz", "carrier_count": 2}}
+        profile = create_from_extraction(self.circuit, data)
+        self.assertEqual(profile.carrier_count, 2)
+        self.assertEqual(profile.radio_configuration, "2+0")
+
+    def test_explicit_radio_configuration_is_kept(self):
+        data = {"profile": {"carrier_count": 2, "radio_configuration": "1+1"}}
+        profile = create_from_extraction(self.circuit, data)
+        self.assertEqual(profile.radio_configuration, "1+1")
+
     def test_skeleton_like_minimal(self):
         profile = create_from_extraction(self.circuit, {"profile": {}})
         self.assertEqual(profile.circuit, self.circuit)

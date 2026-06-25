@@ -56,11 +56,20 @@
       <table class="table table-hover attr-table">
         <tr><th scope="row">Frequency band</th><td>{{ object.get_frequency_band_display|placeholder }}</td></tr>
         <tr><th scope="row">Channel plan (MHz)</th><td>{{ object.channel_plan_mhz|placeholder }}</td></tr>
+        <tr>
+          <th scope="row">Radio configuration</th>
+          <td>
+            {% if object.radio_configuration %}{% badge object.radio_configuration bg_color="purple" %}{% else %}{{ ''|placeholder }}{% endif %}
+            {% if object.carrier_count %}<span class="text-muted">({{ object.carrier_count }} carrier{{ object.carrier_count|pluralize }})</span>{% endif %}
+          </td>
+        </tr>
         <tr><th scope="row">Path length (km)</th><td>{{ object.path_length_km|placeholder }}</td></tr>
         <tr><th scope="row">Path length (mi)</th><td>{{ object.path_length_miles|placeholder }}</td></tr>
         <tr><th scope="row">Atmospheric loss (dB)</th><td>{{ object.atmospheric_loss_db|placeholder }}</td></tr>
         <tr><th scope="row">Free space loss (dB)</th><td>{{ object.free_space_loss_db|placeholder }}</td></tr>
         <tr><th scope="row">Receiver threshold (dBm)</th><td>{{ object.receiver_threshold_dbm|placeholder }}</td></tr>
+        {% if agg_a_to_z %}<tr><th scope="row">Expected throughput A&rarr;Z</th><td>{{ agg_a_to_z }} kbps <span class="text-muted">(top modulation &times; carriers)</span></td></tr>{% endif %}
+        {% if agg_z_to_a %}<tr><th scope="row">Expected throughput Z&rarr;A</th><td>{{ agg_z_to_a }} kbps <span class="text-muted">(top modulation &times; carriers)</span></td></tr>{% endif %}
       </table>
     </div>
     {% if object.notes %}

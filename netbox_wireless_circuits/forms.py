@@ -57,6 +57,8 @@ class WirelessLicenseProfileForm(NetBoxModelForm):
             "station_class",
             "frequency_band",
             "channel_plan_mhz",
+            "carrier_count",
+            "radio_configuration",
             "path_length_km",
             "path_length_miles",
             "atmospheric_loss_db",

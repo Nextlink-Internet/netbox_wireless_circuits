@@ -91,12 +91,22 @@ def macro_values_for_direction(profile, direction, tolerance, exception):
     if top is None:
         return {}
 
+    carriers = profile.carrier_count or 1
+    aggregate_kbps = (
+        top.data_rate_kbps * carriers if top.data_rate_kbps is not None else None
+    )
     values = {
         "RSL.EXPECTED": top.expected_rsl_dbm,
         "RSL.WARN": effective_warning_rsl(top, tolerance),
         "RSL.CRIT": effective_critical_rsl(top, tolerance),
         "MOD.TOP": top.modulation,
         "MOD.TOP_RANK": top.modulation_rank,
+        # Carrier aggregation (N+0): expected aggregate capacity = per-carrier
+        # rate × number of carriers, so monitoring compares against true link
+        # throughput rather than a single carrier's.
+        "CARRIERS": carriers,
+        "CONFIG": profile.radio_configuration or None,
+        "THROUGHPUT.EXPECTED_KBPS": aggregate_kbps,
         "ALARM.SUPPRESS": 1 if (exception and exception.suppress_alarms) else 0,
         "CID": profile.circuit.cid,
     }

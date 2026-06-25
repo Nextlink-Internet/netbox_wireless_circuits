@@ -102,7 +102,8 @@ Return a single JSON object (no prose, no markdown fences) shaped as:
           ["6 GHz","11 GHz","18 GHz","23 GHz","70/80 GHz","90 GHz"]|null,
         "channel_plan_mhz": number|null, "path_length_km": number|null,
         "path_length_miles": number|null, "atmospheric_loss_db": number|null,
-        "free_space_loss_db": number|null, "receiver_threshold_dbm": number|null
+        "free_space_loss_db": number|null, "receiver_threshold_dbm": number|null,
+        "carrier_count": integer|null, "radio_configuration": str|null
       },
       "endpoints": [
         { "side": "A"|"Z", "pcn_site_name": str|null, "county_state": str|null,
@@ -127,6 +128,13 @@ hop). Return ONE entry in "paths" per distinct path. ``cid`` is a concise circui
 identifier you can infer for that path (a link/path name or job number); leave it
 null if unclear. Use null for anything not present. Side A is the first/primary
 site, side Z the far end. Do not invent values.
+
+``carrier_count`` is the number of distinct RF carriers / channels assigned to the
+link — count the channel assignments in the "TRANSMIT FREQUENCIES" / channel-plan
+section (each go/return frequency PAIR is one carrier; e.g. channels "4" and "5"
+=> 2 carriers). A single-channel link is 1. ``radio_configuration`` is the
+aggregation notation like "1+0", "2+0", "4+0" if the document states it; otherwise
+leave it null (it will be derived from carrier_count).
 """.strip()
 
 

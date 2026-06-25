@@ -61,6 +61,8 @@ class WirelessLicenseProfileView(generic.ObjectView):
             "mod_z_to_a": instance.modulation_targets.filter(
                 direction="Z_TO_A"
             ).order_by("-modulation_rank"),
+            "agg_a_to_z": instance.aggregate_data_rate_kbps("A_TO_Z"),
+            "agg_z_to_a": instance.aggregate_data_rate_kbps("Z_TO_A"),
             "exceptions": instance.exceptions.all(),
             "global_settings": models.WirelessGlobalSettings.load(),
             "zabbix_sync_available": sync_enabled(),

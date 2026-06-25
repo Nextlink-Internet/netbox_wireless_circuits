@@ -161,6 +161,42 @@ class MacroValueTests(TestCase):
         self.assertEqual(empty, {})
 
 
+class CarrierAggregationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        provider = Provider.objects.create(name="Comsearch", slug="comsearch")
+        ctype = CircuitType.objects.create(name="Microwave", slug="microwave")
+        circuit = Circuit.objects.create(cid="MW-2P0", provider=provider, type=ctype)
+        cls.profile = WirelessLicenseProfile.objects.create(
+            circuit=circuit, frequency_band="18 GHz",
+            carrier_count=2, radio_configuration="2+0",
+        )
+        WirelessModulationTarget.objects.create(
+            wireless_license_profile=cls.profile, direction="A_TO_Z",
+            modulation="4096 QAM", expected_rsl_dbm=Decimal("-34"),
+            data_rate_kbps=731000, alarm_enabled=True,
+        )
+
+    def test_aggregate_helper_scales_by_carriers(self):
+        # 731000 kbps per carrier × 2 carriers.
+        self.assertEqual(self.profile.aggregate_data_rate_kbps("A_TO_Z"), 1462000)
+        # No target in the other direction -> None.
+        self.assertIsNone(self.profile.aggregate_data_rate_kbps("Z_TO_A"))
+
+    def test_macro_values_include_throughput_and_config(self):
+        values = macro_values_for_direction(self.profile, "A_TO_Z", Decimal("0"), None)
+        self.assertEqual(values["CARRIERS"], 2)
+        self.assertEqual(values["CONFIG"], "2+0")
+        self.assertEqual(values["THROUGHPUT.EXPECTED_KBPS"], 1462000)
+
+    def test_blank_carrier_count_treated_as_one(self):
+        self.profile.carrier_count = None
+        self.profile.save()
+        self.assertEqual(self.profile.aggregate_data_rate_kbps("A_TO_Z"), 731000)
+        values = macro_values_for_direction(self.profile, "A_TO_Z", Decimal("0"), None)
+        self.assertEqual(values["CARRIERS"], 1)
+
+
 class DeviceSyncPlanTests(TestCase):
     @classmethod
     def setUpTestData(cls):

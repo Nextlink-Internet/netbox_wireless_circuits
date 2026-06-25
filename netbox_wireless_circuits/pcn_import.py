@@ -22,6 +22,7 @@ PROFILE_FIELDS = {
     "radio_service", "station_class", "frequency_band", "channel_plan_mhz",
     "path_length_km", "path_length_miles", "atmospheric_loss_db",
     "free_space_loss_db", "receiver_threshold_dbm",
+    "carrier_count", "radio_configuration",
 }
 ENDPOINT_FIELDS = {
     "side", "pcn_site_name", "county_state", "latitude", "longitude",
@@ -100,9 +101,15 @@ def create_from_extraction(circuit, data):
     PCN data dict. Atomic: any model validation error rolls the whole thing back.
     Returns the created :class:`WirelessLicenseProfile`.
     """
-    profile = WirelessLicenseProfile.objects.create(
-        circuit=circuit, **_filtered(data.get("profile"), PROFILE_FIELDS)
-    )
+    prof_fields = _filtered(data.get("profile"), PROFILE_FIELDS)
+    # Derive the N+0 label from the carrier count when the document didn't state
+    # one explicitly (assumes unprotected; edit on the profile if it's N+1).
+    if prof_fields.get("carrier_count") and not prof_fields.get("radio_configuration"):
+        try:
+            prof_fields["radio_configuration"] = f"{int(prof_fields['carrier_count'])}+0"
+        except (TypeError, ValueError):
+            pass
+    profile = WirelessLicenseProfile.objects.create(circuit=circuit, **prof_fields)
     for ep in (data.get("endpoints") or []):
         fields = _filtered(ep, ENDPOINT_FIELDS)
         # netbox_site is a Site instance injected by the wizard (a per-side

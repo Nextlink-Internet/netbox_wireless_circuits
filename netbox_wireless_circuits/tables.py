@@ -34,6 +34,8 @@ class WirelessLicenseProfileTable(NetBoxTable):
             "licensee",
             "call_sign",
             "channel_plan_mhz",
+            "radio_configuration",
+            "carrier_count",
             "receiver_threshold_dbm",
             "created",
             "last_updated",

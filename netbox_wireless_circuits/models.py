@@ -97,6 +97,22 @@ class WirelessLicenseProfile(NetBoxModel):
         verbose_name="Receiver threshold (dBm)",
     )
 
+    # Carrier aggregation (N+0). carrier_count is the number of bonded RF
+    # carriers/channels on the link; radio_configuration is the human notation
+    # ("1+0", "2+0", "4+0"), derived from carrier_count at import when not given.
+    carrier_count = models.PositiveSmallIntegerField(
+        blank=True, null=True,
+        verbose_name="Carrier count",
+        help_text="Number of bonded RF carriers / channels on the link "
+                  "(e.g. 2 for a 2+0 configuration).",
+    )
+    radio_configuration = models.CharField(
+        max_length=20, blank=True,
+        verbose_name="Radio configuration",
+        help_text="Link aggregation / protection notation, e.g. 1+0, 2+0, 4+0. "
+                  "Derived from the carrier count on import when not provided.",
+    )
+
     source_document = models.URLField(blank=True)
     notes = models.TextField(blank=True)
 
@@ -123,6 +139,19 @@ class WirelessLicenseProfile(NetBoxModel):
     def endpoint_for_side(self, side):
         """Return the endpoint for a given side ('A'/'Z') or None."""
         return self.endpoints.filter(side=side).first()
+
+    def aggregate_data_rate_kbps(self, direction):
+        """
+        Aggregate expected throughput for a direction: the top alarm-enabled
+        modulation's per-carrier data rate × the carrier count. Returns None if
+        there is no rate to scale. A blank carrier_count is treated as 1.
+        """
+        from .zabbix import top_enabled_target
+
+        top = top_enabled_target(self, direction)
+        if top is None or top.data_rate_kbps is None:
+            return None
+        return top.data_rate_kbps * (self.carrier_count or 1)
 
 
 class WirelessCircuitEndpoint(NetBoxModel):
