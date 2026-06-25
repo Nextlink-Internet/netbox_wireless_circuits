@@ -26,6 +26,7 @@ dependencies = []
 [project.urls]
 Homepage = "https://nextlinkinternet.com"
 Source = "https://github.com/nextlinkinternet/netbox-wireless-circuits"
+Issues = "https://github.com/nextlinkinternet/netbox-wireless-circuits/issues"
 
 [tool.setuptools.packages.find]
 include = ["netbox_wireless_circuits*"]
