@@ -25,6 +25,7 @@ NBXSYNC = apps.is_installed("nbxsync")
 MACRO_NAMES = [
     "{$WL.RSL.EXPECTED}", "{$WL.RSL.WARN}", "{$WL.RSL.CRIT}",
     "{$WL.MOD.TOP}", "{$WL.MOD.TOP_RANK}", "{$WL.ALARM.SUPPRESS}", "{$WL.CID}",
+    "{$WL.CARRIERS}", "{$WL.CONFIG}", "{$WL.THROUGHPUT.EXPECTED_KBPS}",
 ]
 
 
@@ -85,6 +86,8 @@ class NbxsyncMacroSyncTests(TestCase):
         self.assertEqual(by_macro["{$WL.RSL.CRIT}"], "-48.000")
         self.assertEqual(by_macro["{$WL.MOD.TOP}"], "4096 QAM")
         self.assertEqual(by_macro["{$WL.CID}"], "MW-Z")
+        # Carrier count defaults to 1 when unset.
+        self.assertEqual(by_macro["{$WL.CARRIERS}"], "1")
 
     def test_idempotent(self):
         sync_device(self.device, self.settings)
