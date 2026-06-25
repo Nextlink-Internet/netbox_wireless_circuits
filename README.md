@@ -77,6 +77,8 @@ system does the math and raises the alarms.
   (including effective thresholds after tolerance and exceptions) into a shape a
   monitoring template can consume directly.
 - Ships **CSV import** for bulk-loading profiles and modulation ladders.
+- **Auto-tags each circuit** with its N+0 radio configuration (e.g.
+  `link_type: 2+0`) so links are filterable by type in the core Circuits list.
 
 ---
 
@@ -187,6 +189,25 @@ contain multiple paths. See [PCN PDF import](#pcn-pdf-import-llm-assisted).
 4. **Add modulation targets** per direction (the profile's modulation panel has
    *Add* buttons), or bulk-load via [CSV import](#csv-import).
 5. Optionally **record exceptions** and set the **global tolerance**.
+
+### Automatic link-type tag
+
+Every wireless circuit is automatically given a **NetBox tag** reflecting its
+profile's **N+0 radio configuration** (carrier aggregation), so links are
+filterable in the **core Circuits list** by their link type. The tag is applied
+to the **Circuit** whenever a profile is created (including via PCN import) and
+kept in sync if `radio_configuration` later changes — the stale tag is removed
+and the new one applied.
+
+The tag name comes from a template in **Wireless Circuits → Global Settings**
+where `{config}` is replaced by the N+0 value:
+
+- `link_type_tag_enabled` — turn the auto-tag on or off (default **on**).
+- `link_type_tag_template` — the tag-name template (default
+  `link_type: {config}`, producing e.g. `link_type: 2+0`). Set it to `{config}`
+  for the value only (`2+0`), or `MW-{config}` for a prefix (`MW-2+0`).
+
+A profile with no `radio_configuration` gets no link-type tag.
 
 ### Status conventions
 
@@ -423,6 +444,15 @@ layout (appended to the extraction prompt).
 
 If extraction is disabled or every provider fails, the same screen appears with an
 empty skeleton so you can enter the path(s) by hand.
+
+#### The source PCN PDF is retained
+
+The PDF you upload in Step 1 is stashed for the wizard and a **copy is attached to
+every profile it creates** (`pcn_document`). Because one PDF can yield several
+circuits, each resulting profile gets its own copy. The file is then available:
+
+- as a **"Download PCN PDF"** link on the circuit's **Wireless License** tab, and
+- as a file URL in the profile's `pcn_document` field in the [REST API](#rest-api).
 
 #### Deleting wizard-imported circuits and profiles
 
