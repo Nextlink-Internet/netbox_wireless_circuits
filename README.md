@@ -408,9 +408,14 @@ layout (appended to the extraction prompt).
    These dropdowns are built dynamically once extraction reveals how many paths
    there are. Assignment is **optional**: a side is **pre-selected** when its
    extracted `pcn_site_name` exactly matches (case-insensitive) an existing
-   NetBox Site name, otherwise it's left blank. The chosen Site is written to the
-   endpoint's `netbox_site` field; leaving a side blank leaves that endpoint's
-   site **null**. You can always set or change the site later on each
+   NetBox Site name, otherwise it's left blank. Assigning a Site to a side does
+   **two** things: (a) it sets the plugin's `WirelessCircuitEndpoint.netbox_site`
+   (the RF record), and (b) it creates or updates that circuit's **native NetBox
+   `CircuitTermination`** for that side (A or Z), terminated to the Site — so the
+   core Circuit's Termination A/Z is populated, not just the RF record. This is
+   idempotent: one termination per side, reused on re-import. Leaving a side
+   blank leaves that endpoint's site **null** and creates **no** termination for
+   that side. You can always set or change the site later on each
    circuit/endpoint.
 3. Click **Create** — each path becomes a circuit + wireless profile + A/Z
    endpoints + modulation targets (with any chosen sites applied), created
