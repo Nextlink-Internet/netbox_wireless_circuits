@@ -6,6 +6,7 @@ from django.test import SimpleTestCase
 from netbox_wireless_circuits.llm import (
     ProviderError,
     build_prompt,
+    discover_models,
     extract_from_pdf,
     get_api_key,
     parse_json_response,
@@ -48,6 +49,22 @@ class KeyResolutionTests(SimpleTestCase):
     def test_missing_key_none(self):
         with mock.patch.dict("os.environ", {}, clear=True):
             self.assertIsNone(get_api_key("openai"))
+
+
+class DiscoverModelsTests(SimpleTestCase):
+    def test_reports_each_provider_without_raising(self):
+        results = discover_models()
+        providers = {r["provider"] for r in results}
+        self.assertEqual(providers, {"anthropic", "gemini", "openai"})
+        for r in results:
+            # Never raises; entries are well-formed regardless of SDK/key presence.
+            self.assertIn("sdk", r)
+            self.assertIn("key", r)
+            self.assertIsInstance(r["models"], list)
+            # A provider without SDK or key is not queried (no error, no models).
+            if not (r["sdk"] and r["key"]):
+                self.assertIsNone(r["error"])
+                self.assertEqual(r["models"], [])
 
 
 class FailoverTests(SimpleTestCase):

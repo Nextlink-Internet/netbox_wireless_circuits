@@ -1,0 +1,52 @@
+{% extends 'base/layout.html' %}
+
+{% block title %}Available LLM Models{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-12">
+    <p class="text-muted">
+      Live model lists queried from each provider whose SDK is installed and whose
+      API key is configured (via environment / <code>PLUGINS_CONFIG</code>). Copy a
+      model ID into an
+      <a href="{% url 'plugins:netbox_wireless_circuits:wirelessllmprovider_list' %}">LLM Provider</a>
+      row. A provider with no SDK or key isn't queried.
+    </p>
+
+    {% for r in results %}
+    <div class="card">
+      <h5 class="card-header">
+        {{ r.provider|capfirst }}
+        <div class="card-actions">
+          {% if r.sdk %}<span class="badge text-bg-green">SDK</span>{% else %}<span class="badge text-bg-red">no SDK</span>{% endif %}
+          {% if r.key %}<span class="badge text-bg-green">key</span>{% else %}<span class="badge text-bg-red">no key</span>{% endif %}
+        </div>
+      </h5>
+      <div class="card-body">
+        {% if not r.sdk %}
+          <span class="text-muted">SDK not installed — <code>pip install netbox-wireless-circuits[llm]</code> (or the single provider package).</span>
+        {% elif not r.key %}
+          <span class="text-muted">No API key configured for this provider (set it via environment / PLUGINS_CONFIG).</span>
+        {% elif r.error %}
+          <div class="alert alert-warning mb-0">Could not list models: {{ r.error }}</div>
+        {% elif not r.models %}
+          <span class="text-muted">No models returned.</span>
+        {% else %}
+          <span class="text-muted">{{ r.models|length }} model(s):</span>
+          <div class="table-responsive mt-2">
+            <table class="table table-hover">
+              <thead><tr><th>Model ID</th><th>Name</th></tr></thead>
+              <tbody>
+                {% for m in r.models %}
+                <tr><td><code>{{ m.id }}</code></td><td>{{ m.name }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

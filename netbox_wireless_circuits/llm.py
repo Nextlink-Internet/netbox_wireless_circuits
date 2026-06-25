@@ -273,6 +273,81 @@ def _openai_adapter(pdf_bytes, model, api_key, prompt):
     return parse_json_response(response.output_text)
 
 
+# --- live model discovery (queries each provider's models endpoint) ---
+
+def _list_models_anthropic(api_key):
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=api_key)
+    out = []
+    for m in client.models.list():
+        out.append({"id": m.id, "name": getattr(m, "display_name", None) or m.id})
+    return out
+
+
+def _list_models_gemini(api_key):
+    from google import genai
+
+    client = genai.Client(api_key=api_key)
+    out = []
+    for m in client.models.list():
+        actions = getattr(m, "supported_actions", None) or []
+        if actions and "generateContent" not in actions:
+            continue
+        name = getattr(m, "name", "") or ""
+        short = name.split("/")[-1] if name else ""
+        if short:
+            out.append({"id": short, "name": getattr(m, "display_name", None) or short})
+    return out
+
+
+def _list_models_openai(api_key):
+    import re
+
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key)
+    ids = sorted(m.id for m in client.models.list().data)
+    # Trim to chat / reasoning families (skip embeddings, audio, image, etc.).
+    keep = [i for i in ids if i.startswith("gpt") or re.match(r"^o\d", i)]
+    return [{"id": i, "name": i} for i in keep]
+
+
+_MODEL_LISTERS = {
+    "anthropic": _list_models_anthropic,
+    "gemini": _list_models_gemini,
+    "openai": _list_models_openai,
+}
+
+
+def discover_models():
+    """
+    Query each provider's models endpoint (best-effort) for live model lists.
+
+    Returns a list of per-provider dicts: ``{provider, sdk, key, models, error}``.
+    A provider with no SDK or no key is reported (not queried). Network/auth
+    errors are captured per provider, never raised.
+    """
+    from .choices import LLMProviderChoices
+
+    results = []
+    for provider, _label, _color in LLMProviderChoices.CHOICES:
+        entry = {
+            "provider": provider,
+            "sdk": sdk_available(provider),
+            "key": key_present(provider),
+            "models": [],
+            "error": None,
+        }
+        if entry["sdk"] and entry["key"]:
+            try:
+                entry["models"] = _MODEL_LISTERS[provider](get_api_key(provider))
+            except Exception as exc:  # network / auth / SDK error — report, don't raise
+                entry["error"] = str(exc)
+        results.append(entry)
+    return results
+
+
 def _register_default_adapters():
     for provider, fn in (
         ("anthropic", _anthropic_adapter),

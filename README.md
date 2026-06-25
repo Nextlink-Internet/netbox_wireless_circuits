@@ -363,29 +363,43 @@ empty skeleton so you can enter the path(s) by hand.
 
 ### Recommended models for PDF extraction
 
-Because the source PDFs are image scans, prefer each provider's **strongest
-vision model** for accuracy on dense datasheets, with cheaper models as
-fallbacks. Recommendations current as of **early 2026** — the Model field is free
-text, so use whatever your account can access:
+The source PDFs are **image scans with dense numeric tables**, so use a
+**vision/OCR-capable** model — and be aware the cheapest tiers can misread small
+digits. Recommendations current as of **early 2026**; the Model field is free
+text, so use whatever your account can access (see *Discover available models*
+below to fetch live IDs).
 
-| Provider | Best accuracy | Balanced / fallback | Notes |
-|----------|---------------|---------------------|-------|
-| **Anthropic** | `claude-opus-4-8` | `claude-sonnet-4-6` | Excellent on dense scanned tables; strong native PDF support. |
-| **Google Gemini** | `gemini-2.5-pro` | `gemini-2.5-flash` | Strong document/vision; large context window. |
-| **OpenAI** | `gpt-4.1` | `gpt-4.1-mini` | Vision-capable; solid cross-vendor fallback. |
+| Provider | Best accuracy | Balanced | Cheapest | Notes |
+|----------|---------------|----------|----------|-------|
+| **Anthropic** | `claude-opus-4-8` | `claude-sonnet-4-6` | `claude-haiku-4-5` | Strong on dense scanned tables. Approx. price (in/out per 1M tok): Opus 4.8 $5/$25, Sonnet 4.6 $3/$15, Haiku 4.5 $1/$5. |
+| **Google Gemini** | `gemini-2.5-pro` | `gemini-2.5-flash` | `gemini-2.5-flash-lite` | Flash is often the best **value** for document extraction (cheap, fast, large context). Verify current pricing with Google. |
+| **OpenAI** | `gpt-4.1` | `gpt-4o` | `gpt-4.1-mini` | Vision-capable; solid cross-vendor fallback. Verify current pricing with OpenAI. |
 
-A resilient default chain (rank → model):
+**Cheap & efficient chain** (rank → model) — lowest cost first, accuracy fallback second:
 
-1. `claude-opus-4-8` (Anthropic) — primary, highest accuracy
-2. `gemini-2.5-pro` (Google Gemini) — cross-vendor fallback
-3. `gpt-4.1` (OpenAI) — last resort
+1. `gemini-2.5-flash` (or `claude-haiku-4-5` to stay single-vendor) — cheap primary
+2. `claude-sonnet-4-6` — accuracy fallback when the cheap model returns garbled numbers
+3. `gpt-4.1-mini` — cross-vendor backstop
+
+**Max-accuracy chain** (when correctness matters more than cost):
+
+1. `claude-opus-4-8` → 2. `gemini-2.5-pro` → 3. `gpt-4.1`
 
 Tips:
 
-- For high volume / cost sensitivity, make a Sonnet / Flash / mini model the
-  primary and reserve the top model as the fallback for hard documents.
 - **Always review the preview.** Treat extraction as a first draft — double-check
   numeric fields (RSL, power, frequencies) on low-quality scans before creating.
+- Validate your chosen primary on a representative PDF; if the cheap model
+  misreads digits, promote a stronger model to primary.
+
+### Discover available models
+
+**Wireless Circuits → Available LLM Models** queries each provider whose **SDK is
+installed and key is configured** and lists the model IDs currently available to
+your account (Anthropic is filtered toward chat/vision models; OpenAI is trimmed
+to the `gpt`/`o*` families). Copy an ID straight into an **LLM Providers** row —
+this keeps the free-text Model field honest against what your account can
+actually call. Providers without an SDK or key are shown but not queried.
 
 ### Troubleshooting
 

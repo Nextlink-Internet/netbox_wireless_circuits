@@ -190,6 +190,11 @@ urlpatterns = [
         name="wirelessllmprovider_list",
     ),
     path(
+        "llm-providers/available-models/",
+        views.WirelessLLMModelDiscoveryView.as_view(),
+        name="llm_available_models",
+    ),
+    path(
         "llm-providers/add/",
         views.WirelessLLMProviderEditView.as_view(),
         name="wirelessllmprovider_add",

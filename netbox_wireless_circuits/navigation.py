@@ -56,6 +56,11 @@ wireless_circuits_group = MenuGroup(
         _item("wirelessbandtolerance", _("Band Tolerances"), with_import=False),
         _item("wirelessllmprovider", _("LLM Providers"), with_import=False),
         MenuItem(
+            link=f"plugins:{PLUGIN}:llm_available_models",
+            link_text=_("Available LLM Models"),
+            permissions=[f"{PLUGIN}.view_wirelessllmprovider"],
+        ),
+        MenuItem(
             link=f"plugins:{PLUGIN}:wirelessllmsettings",
             link_text=_("LLM Settings"),
             permissions=[f"{PLUGIN}.change_wirelessllmsettings"],

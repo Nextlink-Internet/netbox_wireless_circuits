@@ -313,6 +313,19 @@ class WirelessLLMProviderView(generic.ObjectView):
         return {"status": provider_status(instance.provider)}
 
 
+class WirelessLLMModelDiscoveryView(View):
+    """Query each provider's models endpoint for live, copy-pasteable model IDs."""
+
+    template_name = "netbox_wireless_circuits/llm_models.html"
+
+    def get(self, request):
+        if not request.user.has_perm("netbox_wireless_circuits.view_wirelessllmprovider"):
+            raise PermissionDenied()
+        from .llm import discover_models
+
+        return render(request, self.template_name, {"results": discover_models()})
+
+
 class WirelessLLMProviderListView(generic.ObjectListView):
     queryset = models.WirelessLLMProvider.objects.all()
     table = tables.WirelessLLMProviderTable
