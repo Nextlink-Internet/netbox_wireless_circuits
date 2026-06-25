@@ -131,7 +131,11 @@ sudo systemctl restart netbox netbox-rq
 | Django | `5.2` |
 | Python | `3.10+` |
 
-The plugin has **no runtime dependencies** beyond NetBox itself.
+The plugin has **no runtime dependencies** beyond NetBox itself. The Zabbix
+integration is **optional**: it activates only when the
+[nbxsync](https://github.com/OpensourceICTSolutions/nbxsync) plugin is installed
+(`pip install netbox-wireless-circuits[zabbix]`) *and* the sync is enabled in
+Global Settings. Without nbxsync, every other feature works unchanged.
 
 ---
 

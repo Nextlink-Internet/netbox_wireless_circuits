@@ -23,6 +23,12 @@ classifiers = [
 # No runtime dependencies beyond NetBox itself.
 dependencies = []
 
+# Optional integrations. nbxsync is NOT required for the plugin to function;
+# install it only if you want the Zabbix host-macro/tag sync:
+#   pip install netbox-wireless-circuits[zabbix]
+[project.optional-dependencies]
+zabbix = ["nbxsync"]
+
 [project.urls]
 Homepage = "https://nextlinkinternet.com"
 Source = "https://github.com/Nextlink-Internet/netbox_wireless_circuits"

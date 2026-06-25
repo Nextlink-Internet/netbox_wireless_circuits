@@ -11,7 +11,7 @@ so the thresholds for a direction of travel belong on the receiving end:
 
 This module has **no dependency on nbxsync**: it only computes the desired
 macro/tag specs. The code that writes them into nbxsync models lives in
-``integrations/nbxsync.py`` and is a soft dependency.
+``nbxsync_sync.py`` and is a soft (optional) dependency.
 """
 from .choices import EndpointSideChoices, ModulationDirectionChoices
 
