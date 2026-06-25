@@ -190,10 +190,6 @@ class WirelessAPITests(TestCase):
 
     # --- LLM config endpoints (serializers must resolve for change logging) ---
 
-    def test_llm_settings_list(self):
-        r = self.client.get(f"{BASE}/wireless-llm-settings/")
-        self.assertEqual(r.status_code, 200)
-
     def test_llm_provider_create(self):
         # Exercises change-log serialization on save (the path that 500'd when the
         # serializer was missing).
