@@ -58,6 +58,29 @@ def _filtered(d, allowed):
     }
 
 
+def ensure_circuit_termination(circuit, term_side, site):
+    """
+    Create or update the native NetBox CircuitTermination for one side of the
+    circuit, terminated to ``site``. Idempotent (one termination per side). This
+    is what populates the core Circuit's Termination A/Z; the wireless endpoint's
+    ``netbox_site`` only links the plugin's RF record.
+    """
+    from circuits.models import CircuitTermination
+
+    if term_side not in ("A", "Z") or site is None:
+        return None
+    ct = CircuitTermination.objects.filter(
+        circuit=circuit, term_side=term_side
+    ).first()
+    if ct is None:
+        ct = CircuitTermination(circuit=circuit, term_side=term_side)
+    # ``termination`` is the scoped GFK (Site/Location/Region/...); assigning a
+    # Site and saving denormalizes _site/_region/etc.
+    ct.termination = site
+    ct.save()
+    return ct
+
+
 @transaction.atomic
 def create_circuit_and_profile(cid, provider, circuit_type, data, status="active"):
     """
@@ -117,10 +140,15 @@ def create_from_extraction(circuit, data):
         site = (ep or {}).get("netbox_site")
         if site:
             fields["netbox_site"] = site
-        if fields.get("side"):
+        side = fields.get("side")
+        if side:
             WirelessCircuitEndpoint.objects.create(
                 wireless_license_profile=profile, **fields
             )
+            # Also populate the native circuit's A/Z termination so the core
+            # Circuit reflects where each end lands, not just the RF record.
+            if site:
+                ensure_circuit_termination(circuit, side, site)
     for target in (data.get("modulation_targets") or []):
         fields = _filtered(target, TARGET_FIELDS)
         if fields.get("direction") and fields.get("modulation"):

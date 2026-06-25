@@ -71,7 +71,9 @@
               <p class="text-muted mb-3">
                 One dropdown per side of each path. A side is pre-selected when the
                 extracted site name exactly matches an existing NetBox site; otherwise
-                leave it blank. You can always set or change these later on each circuit.
+                leave it blank. Assigning a site also creates that circuit's native
+                <strong>A/Z termination</strong> at the site (not just the RF record).
+                You can always set or change these later on each circuit.
               </p>
               {% for f in form.site_fields %}
                 {% render_field f %}

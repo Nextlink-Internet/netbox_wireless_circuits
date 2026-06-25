@@ -76,6 +76,27 @@ class PCNImportMappingTests(TestCase):
         profile = create_from_extraction(self.circuit, data)
         self.assertEqual(profile.radio_configuration, "1+1")
 
+    def test_circuit_termination_created_from_assigned_site(self):
+        from circuits.models import CircuitTermination
+
+        site_a = Site.objects.create(name="Term Site A", slug="term-site-a")
+        data = {
+            "profile": {"frequency_band": "11 GHz"},
+            "endpoints": [
+                {"side": "A", "netbox_site": site_a},
+                {"side": "Z"},  # no site -> no native termination
+            ],
+        }
+        create_from_extraction(self.circuit, data)
+        ct_a = CircuitTermination.objects.get(circuit=self.circuit, term_side="A")
+        self.assertEqual(ct_a.termination, site_a)
+        self.assertEqual(ct_a._site, site_a)  # denormalized so the site lists it
+        self.assertFalse(
+            CircuitTermination.objects.filter(
+                circuit=self.circuit, term_side="Z"
+            ).exists()
+        )
+
     def test_skeleton_like_minimal(self):
         profile = create_from_extraction(self.circuit, {"profile": {}})
         self.assertEqual(profile.circuit, self.circuit)
