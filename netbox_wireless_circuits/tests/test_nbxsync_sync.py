@@ -75,9 +75,9 @@ class NbxsyncMacroSyncTests(TestCase):
         self.assertFalse(summary["skipped"])
         self.assertEqual(summary["macros_missing_def"], [])
         by_macro = {a.zabbixmacro.macro: a.value for a in self._assignments()}
-        self.assertEqual(by_macro["{$WL.RSL.EXPECTED}"], "-42")
-        self.assertEqual(by_macro["{$WL.RSL.WARN}"], "-45")
-        self.assertEqual(by_macro["{$WL.RSL.CRIT}"], "-48")
+        self.assertEqual(by_macro["{$WL.RSL.EXPECTED}"], "-42.000")
+        self.assertEqual(by_macro["{$WL.RSL.WARN}"], "-45.000")
+        self.assertEqual(by_macro["{$WL.RSL.CRIT}"], "-48.000")
         self.assertEqual(by_macro["{$WL.MOD.TOP}"], "4096 QAM")
         self.assertEqual(by_macro["{$WL.CID}"], "MW-Z")
 
@@ -93,7 +93,7 @@ class NbxsyncMacroSyncTests(TestCase):
         self.target.save()
         sync_device(self.device, self.settings)
         warn = self._assignments().get(zabbixmacro__macro="{$WL.RSL.WARN}")
-        self.assertEqual(warn.value, "-43")
+        self.assertEqual(warn.value, "-43.000")
 
     def test_stale_macro_removed(self):
         sync_device(self.device, self.settings)

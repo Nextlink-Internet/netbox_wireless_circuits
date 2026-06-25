@@ -138,8 +138,8 @@ class DeviceSyncPlanTests(TestCase):
         settings.zabbix_emit_tags = True
         plan = device_sync_plan(self.device, settings)
         names = {m["name"]: m["value"] for m in plan["macros"]}
-        self.assertEqual(names["{$WL.RSL.EXPECTED}"], "-42")
-        self.assertEqual(names["{$WL.RSL.WARN}"], "-45")  # tolerance 0 by default
+        self.assertEqual(names["{$WL.RSL.EXPECTED}"], "-42.000")
+        self.assertEqual(names["{$WL.RSL.WARN}"], "-45.000")  # tolerance 0 by default
         self.assertEqual(names["{$WL.MOD.TOP}"], "4096 QAM")
         # All single-link macros carry empty context.
         self.assertTrue(all(m["context"] == "" for m in plan["macros"]))
