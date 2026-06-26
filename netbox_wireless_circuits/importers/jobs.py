@@ -22,6 +22,12 @@ class WirelessCSVImportJob(JobRunner):
     class Meta:
         name = "Wireless CSV import"
 
+    # A full coordinator export is thousands of links — well beyond the 300s RQ
+    # default (RQ_DEFAULT_TIMEOUT). Allow an hour. If it ever still times out,
+    # re-queueing resumes cleanly: already-created links are skipped by their
+    # (import_source, import_key) de-dup key, so only the remainder is created.
+    job_timeout = 60 * 60
+
     def run(self, *args, source_name=None, file_name=None, provider_id=None,
             circuit_type_id=None, status="active", apply_changes=False, **kwargs):
         from circuits.models import CircuitType, Provider
