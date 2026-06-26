@@ -29,10 +29,10 @@ class WirelessLicenseProfileFilterSetTests(TestCase):
         cls.c2 = Circuit.objects.create(cid="MW-OK-TULSA-002", provider=provider, type=ctype)
 
         cls.p1 = WirelessLicenseProfile.objects.create(
-            circuit=cls.c1, frequency_band="11 GHz", registration_status="registered"
+            circuit=cls.c1, frequency_band="11 GHz", registration_status="licensed"
         )
         cls.p2 = WirelessLicenseProfile.objects.create(
-            circuit=cls.c2, frequency_band="23 GHz", registration_status="engineering"
+            circuit=cls.c2, frequency_band="23 GHz", registration_status="applied"
         )
 
         cls.site = Site.objects.create(name="Stiles", slug="stiles")
@@ -62,7 +62,7 @@ class WirelessLicenseProfileFilterSetTests(TestCase):
 
     def test_filter_by_registration_status(self):
         self.assertEqual(
-            list(self._qs({"registration_status": ["engineering"]})), [self.p2]
+            list(self._qs({"registration_status": ["applied"]})), [self.p2]
         )
 
     def test_filter_by_site(self):

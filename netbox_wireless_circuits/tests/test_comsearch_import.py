@@ -1,5 +1,6 @@
 import csv
 import io
+from datetime import date
 from decimal import Decimal
 
 from django.test import TestCase
@@ -15,6 +16,7 @@ from netbox_wireless_circuits.importers.base import (
     to_decimal,
     to_int,
 )
+from netbox_wireless_circuits.choices import rollup_license_status
 from netbox_wireless_circuits.importers.comsearch import ComsearchCSVSource
 from netbox_wireless_circuits.importers.engine import run_import
 from netbox_wireless_circuits.models import WirelessLicenseProfile
@@ -26,7 +28,13 @@ BASE_ROW = {
     "site2": "TX-THROCKMORTON-SW-2", "state2": "TX", "county2": "Haskell County",
     "band": "11 GHz (10700-11700 MHz) US",
     "rcn": '="260623C5"', "job number": "260623COMSRP02",
-    "Current PCN Date": "06/23/2026", "status1": "Proposed",
+    "Current PCN Date": "06/23/2026",
+    "status1": "Proposed", "status2": "Licensed",
+    "licensebasis1": "Primary", "licensebasis2": "Primary",
+    "conditional authorization1": "No", "conditional authorization2": "No",
+    "application date1": "06/18/2026", "application date2": "06/18/2026",
+    "effective date1": "05/27/2026", "effective date2": "05/27/2026",
+    "expiration date1": "06/23/2030", "expiration date2": "12/17/2029",
     "company1": "AMG Technology Investment Group LLC", "call1": "WRHV300",
     "radio service1": "CF-Common Carrier Fixed", "station class1": "FXO-Fixed",
     "planbandwidth1(MHz)": "80.0",
@@ -103,6 +111,14 @@ class NormalizerTests(TestCase):
         self.assertEqual(dms_to_decimal("99 22 55.02 W"), Decimal("-99.381950"))
         self.assertIsNone(dms_to_decimal(""))
 
+    def test_rollup_license_status(self):
+        self.assertEqual(rollup_license_status("licensed", "licensed"), "licensed")
+        # Worse / in-progress status wins the link headline.
+        self.assertEqual(rollup_license_status("licensed", "applied"), "applied")
+        self.assertEqual(rollup_license_status("licensed", "expired_terminated"), "expired_terminated")
+        self.assertEqual(rollup_license_status("", ""), "")
+        self.assertEqual(rollup_license_status("licensed", ""), "licensed")
+
     def test_misc(self):
         self.assertEqual(clean_excel('="260623C5"'), "260623C5")
         self.assertEqual(clean_excel("260623C5"), "260623C5")
@@ -145,6 +161,21 @@ class ComsearchAdapterTests(TestCase):
         self.assertIn(("Z_TO_A", "4096 QAM"), idents)
         # No duplicate (direction, modulation) pairs.
         self.assertEqual(len(idents), len(targets))
+
+    def test_per_side_license_fields_mapped(self):
+        link = self._one(dict(BASE_ROW))
+        eps = {e["side"]: e for e in link.data["endpoints"]}
+        self.assertEqual(eps["A"]["license_status"], "proposed")
+        self.assertEqual(eps["Z"]["license_status"], "licensed")
+        self.assertEqual(eps["A"]["license_basis"], "primary")
+        self.assertEqual(eps["A"]["conditional_authorization"], False)
+        self.assertEqual(str(eps["A"]["license_expiration_date"]), "2030-06-23")
+        self.assertEqual(str(eps["Z"]["license_expiration_date"]), "2029-12-17")
+
+    def test_link_status_rolls_up_to_attention_status(self):
+        # A=Proposed, Z=Licensed -> the in-progress (Proposed) status wins.
+        link = self._one(dict(BASE_ROW))
+        self.assertEqual(link.data["profile"]["registration_status"], "proposed")
 
     def test_carrier_count_counts_freq_pairs(self):
         row = dict(BASE_ROW, **{"freq1_2": "11405.0"})
@@ -211,6 +242,19 @@ class EngineIdempotencyTests(TestCase):
         ep_a = after.endpoints.get(side="A")
         self.assertEqual(ep_a.maximum_power_dbm, Decimal("29.000"))
         self.assertEqual(after.frequency_band, before_band)
+
+    def test_license_status_and_expiration_persisted(self):
+        self._run([dict(BASE_ROW)])
+        profile = WirelessLicenseProfile.objects.get()
+        # Link-level rollup + mixed flag (A Proposed / Z Licensed).
+        self.assertEqual(profile.registration_status, "proposed")
+        self.assertTrue(profile.license_status_mixed)
+        # Earliest of the two ends' expirations drives renewal tracking.
+        self.assertEqual(profile.license_expiration, date(2029, 12, 17))
+        ep_a = profile.endpoints.get(side="A")
+        self.assertEqual(ep_a.license_status, "proposed")
+        self.assertEqual(ep_a.license_basis, "primary")
+        self.assertEqual(ep_a.license_expiration_date, date(2030, 6, 23))
 
     def test_two_distinct_links_create_two_circuits(self):
         row2 = dict(BASE_ROW, **{

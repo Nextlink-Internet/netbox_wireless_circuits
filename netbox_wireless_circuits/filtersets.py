@@ -43,6 +43,12 @@ class WirelessLicenseProfileFilterSet(NetBoxModelFilterSet):
     registration_status = django_filters.MultipleChoiceFilter(
         choices=RegistrationStatusChoices,
     )
+    license_expires_before = django_filters.DateFilter(
+        field_name="endpoints__license_expiration_date",
+        lookup_expr="lte",
+        distinct=True,
+        label="License expires on/before (renewal due)",
+    )
     site = django_filters.ModelMultipleChoiceFilter(
         field_name="endpoints__netbox_site",
         queryset=Site.objects.all(),
@@ -98,6 +104,9 @@ class WirelessCircuitEndpointFilterSet(NetBoxModelFilterSet):
         label="Wireless license profile (ID)",
     )
     side = django_filters.MultipleChoiceFilter(choices=EndpointSideChoices)
+    license_status = django_filters.MultipleChoiceFilter(
+        choices=RegistrationStatusChoices,
+    )
     circuit_cid = django_filters.CharFilter(
         method="filter_circuit_cid",
         label="Circuit CID (contains)",
@@ -127,6 +136,7 @@ class WirelessCircuitEndpointFilterSet(NetBoxModelFilterSet):
             "netbox_site",
             "netbox_device",
             "netbox_interface",
+            "license_status",
             "pcn_site_name",
             "polarization",
         )

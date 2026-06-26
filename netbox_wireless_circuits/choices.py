@@ -2,24 +2,78 @@ from utilities.choices import ChoiceSet
 
 
 class RegistrationStatusChoices(ChoiceSet):
-    """FCC / coordination license workflow status."""
+    """
+    FCC microwave **license status**, using the vocabulary coordinators (e.g.
+    Comsearch) report. Tracked per endpoint (each end holds its own license); the
+    link-level badge is rolled up from the two ends — see ``rollup_license_status``.
+    """
 
-    ENGINEERING = "engineering"
-    SUBMITTED = "submitted"
-    REGISTERED = "registered"
-    GRANTED = "granted"
-    EXPIRED = "expired"
-    CANCELLED = "cancelled"
+    LICENSED = "licensed"
+    APPLIED = "applied"
+    PROPOSED = "proposed"
+    REPLACED = "replaced"
+    EXPIRED_TERMINATED = "expired_terminated"
+    TRANSITIONAL = "transitional"
+    QUESTIONABLE = "questionable"
+    PROTECTION_DECLINED = "protection_declined"
+    TEMPORARY = "temporary"
     UNKNOWN = "unknown"
 
     CHOICES = [
-        (ENGINEERING, "Engineering", "cyan"),
-        (SUBMITTED, "Submitted", "blue"),
-        (REGISTERED, "Registered", "green"),
-        (GRANTED, "Granted", "teal"),
-        (EXPIRED, "Expired", "red"),
-        (CANCELLED, "Cancelled", "gray"),
+        (LICENSED, "Licensed", "green"),
+        (APPLIED, "Applied", "blue"),
+        (PROPOSED, "Proposed", "cyan"),
+        (REPLACED, "Replaced", "gray"),
+        (EXPIRED_TERMINATED, "Expired or Terminated", "red"),
+        (TRANSITIONAL, "Transitional", "orange"),
+        (QUESTIONABLE, "Questionable", "yellow"),
+        (PROTECTION_DECLINED, "Protection Declined", "gray"),
+        (TEMPORARY, "Temporary", "purple"),
         (UNKNOWN, "Unknown", "black"),
+    ]
+
+
+# Attention order for the link-level rollup when the two ends differ: earlier =
+# surfaced first (the worse / needs-attention status wins the headline badge).
+LICENSE_STATUS_PRIORITY = [
+    RegistrationStatusChoices.EXPIRED_TERMINATED,
+    RegistrationStatusChoices.QUESTIONABLE,
+    RegistrationStatusChoices.PROTECTION_DECLINED,
+    RegistrationStatusChoices.TRANSITIONAL,
+    RegistrationStatusChoices.TEMPORARY,
+    RegistrationStatusChoices.REPLACED,
+    RegistrationStatusChoices.PROPOSED,
+    RegistrationStatusChoices.APPLIED,
+    RegistrationStatusChoices.LICENSED,
+    RegistrationStatusChoices.UNKNOWN,
+]
+
+
+def rollup_license_status(*statuses):
+    """
+    Reduce per-end license statuses to a single link-level value: the most
+    attention-worthy present status (so a link with one Expired end reads
+    'Expired', not 'Licensed'). Returns "" when none are set.
+    """
+    present = [s for s in statuses if s]
+    if not present:
+        return ""
+    return min(
+        present,
+        key=lambda s: LICENSE_STATUS_PRIORITY.index(s)
+        if s in LICENSE_STATUS_PRIORITY else len(LICENSE_STATUS_PRIORITY),
+    )
+
+
+class LicenseBasisChoices(ChoiceSet):
+    """FCC license basis / priority."""
+
+    PRIMARY = "primary"
+    SECONDARY = "secondary"
+
+    CHOICES = [
+        (PRIMARY, "Primary", "green"),
+        (SECONDARY, "Secondary", "yellow"),
     ]
 
 

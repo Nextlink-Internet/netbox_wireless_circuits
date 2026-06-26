@@ -25,8 +25,26 @@
           <td>{{ object.circuit|linkify }}</td>
         </tr>
         <tr>
-          <th scope="row">Registration status</th>
-          <td>{% badge object.get_registration_status_display bg_color=object.get_registration_status_color %}</td>
+          <th scope="row">License status</th>
+          <td>
+            {% badge object.get_registration_status_display bg_color=object.get_registration_status_color %}
+            {% if object.license_status_mixed %}
+              <span class="badge text-bg-orange" title="The two ends report different FCC license statuses; see the endpoints below.">Mixed</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">License expires</th>
+          <td>
+            {% if object.license_expiration %}
+              {{ object.license_expiration }}
+              {% if object.license_expired %}
+                <span class="badge text-bg-red">Expired</span>
+              {% elif object.license_expiring_soon %}
+                <span class="badge text-bg-yellow">Expiring soon</span>
+              {% endif %}
+            {% else %}{{ ''|placeholder }}{% endif %}
+          </td>
         </tr>
         <tr><th scope="row">PCN number</th><td>{{ object.pcn_number|placeholder }}</td></tr>
         <tr><th scope="row">RCN / Link Registration</th><td>{{ object.rcn_number|placeholder }}</td></tr>

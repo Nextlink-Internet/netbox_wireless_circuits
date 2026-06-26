@@ -15,7 +15,10 @@ from .models import (
 
 class WirelessLicenseProfileTable(NetBoxTable):
     circuit = tables.Column(linkify=True)
-    registration_status = columns.ChoiceFieldColumn()
+    registration_status = columns.ChoiceFieldColumn(verbose_name="License status")
+    license_expiration = tables.DateColumn(
+        accessor="license_expiration", verbose_name="License expires", orderable=False,
+    )
     frequency_band = tables.Column()
     pcn_number = tables.Column()
     rcn_number = tables.Column()
@@ -29,6 +32,7 @@ class WirelessLicenseProfileTable(NetBoxTable):
             "circuit",
             "frequency_band",
             "registration_status",
+            "license_expiration",
             "pcn_number",
             "rcn_number",
             "job_number",
@@ -45,7 +49,7 @@ class WirelessLicenseProfileTable(NetBoxTable):
             "circuit",
             "frequency_band",
             "registration_status",
-            "pcn_number",
+            "license_expiration",
             "rcn_number",
             "licensee",
         )
@@ -57,6 +61,7 @@ class WirelessCircuitEndpointTable(NetBoxTable):
     netbox_site = tables.Column(linkify=True)
     netbox_device = tables.Column(linkify=True)
     netbox_interface = tables.Column(linkify=True)
+    license_status = columns.ChoiceFieldColumn()
 
     class Meta(NetBoxTable.Meta):
         model = WirelessCircuitEndpoint
@@ -69,6 +74,9 @@ class WirelessCircuitEndpointTable(NetBoxTable):
             "netbox_site",
             "netbox_device",
             "netbox_interface",
+            "license_status",
+            "license_basis",
+            "license_expiration_date",
             "tx_frequency_mhz",
             "antenna_model",
             "radio_model",
@@ -81,8 +89,8 @@ class WirelessCircuitEndpointTable(NetBoxTable):
             "side",
             "pcn_site_name",
             "netbox_site",
-            "netbox_device",
-            "tx_frequency_mhz",
+            "license_status",
+            "license_expiration_date",
         )
 
 

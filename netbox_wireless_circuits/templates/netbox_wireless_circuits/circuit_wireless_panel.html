@@ -3,7 +3,19 @@
   <h5 class="card-header">Wireless License</h5>
   {% if profile %}
   <table class="table table-hover attr-table">
-    <tr><th scope="row">Status</th><td>{% badge profile.get_registration_status_display bg_color=profile.get_registration_status_color %}</td></tr>
+    <tr>
+      <th scope="row">License status</th>
+      <td>
+        {% badge profile.get_registration_status_display bg_color=profile.get_registration_status_color %}
+        {% if profile.license_status_mixed %}<span class="badge text-bg-orange">Mixed</span>{% endif %}
+      </td>
+    </tr>
+    <tr>
+      <th scope="row">License expires</th>
+      <td>
+        {% if profile.license_expiration %}{{ profile.license_expiration }}{% if profile.license_expired %} <span class="badge text-bg-red">Expired</span>{% elif profile.license_expiring_soon %} <span class="badge text-bg-yellow">Expiring soon</span>{% endif %}{% else %}{{ ''|placeholder }}{% endif %}
+      </td>
+    </tr>
     <tr><th scope="row">Band</th><td>{{ profile.get_frequency_band_display|placeholder }}</td></tr>
     <tr><th scope="row">RCN</th><td>{{ profile.rcn_number|placeholder }}</td></tr>
   </table>

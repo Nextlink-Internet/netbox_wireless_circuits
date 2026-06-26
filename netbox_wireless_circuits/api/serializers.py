@@ -37,6 +37,9 @@ class WirelessCircuitEndpointSerializer(NetBoxModelSerializer):
             "pcn_site_name", "county_state", "latitude", "longitude",
             "ground_elevation_m", "ground_elevation_ft", "asr_number",
             "structure_height_agl_m", "structure_height_agl_ft",
+            "license_status", "license_basis", "conditional_authorization",
+            "license_application_date", "license_effective_date",
+            "license_expiration_date",
             "path_azimuth_deg", "antenna", "antenna_code", "antenna_manufacturer",
             "antenna_model", "antenna_diameter_ft", "antenna_gain_dbi",
             "antenna_beamwidth_deg", "antenna_tilt_deg",
@@ -147,6 +150,10 @@ class WirelessLicenseProfileSerializer(NetBoxModelSerializer):
     modulation_targets = WirelessModulationTargetSerializer(
         nested=True, many=True, read_only=True,
     )
+    # Derived link-level license rollups (read-only).
+    license_expiration = serializers.ReadOnlyField()
+    license_expiring_soon = serializers.ReadOnlyField()
+    license_status_mixed = serializers.ReadOnlyField()
 
     class Meta:
         model = WirelessLicenseProfile
@@ -161,6 +168,7 @@ class WirelessLicenseProfileSerializer(NetBoxModelSerializer):
             "atmospheric_loss_db", "free_space_loss_db",
             "receiver_threshold_dbm", "source_document", "pcn_document", "notes",
             "created_via_import", "import_source", "import_key", "import_link_id",
+            "license_expiration", "license_expiring_soon", "license_status_mixed",
             "endpoints", "modulation_targets",
             "tags", "custom_fields", "created", "last_updated",
         )

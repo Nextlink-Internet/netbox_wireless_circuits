@@ -12,6 +12,7 @@ import hashlib
 import io
 from datetime import datetime
 
+from ..choices import LicenseBasisChoices, rollup_license_status
 from .base import (
     BaseCSVSource,
     ParsedLink,
@@ -24,15 +25,29 @@ from .base import (
     to_int,
 )
 
-# Comsearch status1/status2 -> registration_status workflow value.
-_STATUS_MAP = {
-    "proposed": "submitted",
-    "applied": "submitted",
-    "registered": "registered",
-    "granted": "granted",
-    "licensed": "granted",
-    "prior coordination notice": "submitted",
+# Comsearch status1/status2 -> RegistrationStatusChoices value (FCC vocabulary, 1:1).
+_STATUS_SLUG = {
+    "licensed": "licensed",
+    "applied": "applied",
+    "proposed": "proposed",
+    "replaced": "replaced",
+    "expired or terminated": "expired_terminated",
+    "transitional": "transitional",
+    "questionable": "questionable",
+    "protection declined": "protection_declined",
+    "temporary": "temporary",
 }
+
+
+def _license_status(raw):
+    return _STATUS_SLUG.get((raw or "").strip().lower(), "")
+
+
+def _license_basis(raw):
+    return {
+        "primary": LicenseBasisChoices.PRIMARY,
+        "secondary": LicenseBasisChoices.SECONDARY,
+    }.get((raw or "").strip().lower(), "")
 
 
 def _parse_date(value):
@@ -116,7 +131,10 @@ class ComsearchCSVSource(BaseCSVSource):
 
     def _profile(self, r, band, rcn):
         g = lambda k: (r.get(k) or "").strip()  # noqa: E731
-        status = _STATUS_MAP.get(g("status1").lower(), "")
+        # Link-level badge: roll up the two ends' FCC license statuses.
+        status = rollup_license_status(
+            _license_status(g("status1")), _license_status(g("status2"))
+        )
         return _drop_empty({
             "frequency_band": band,
             "rcn_number": rcn,
@@ -156,6 +174,13 @@ class ComsearchCSVSource(BaseCSVSource):
             "ground_elevation_m": to_decimal(g(f"ground{n}(m)")),
             "ground_elevation_ft": to_decimal(g(f"ground{n}(ft)")),
             "asr_number": g(f"asr number{n}"),
+            "license_status": _license_status(g(f"status{n}")),
+            "license_basis": _license_basis(g(f"licensebasis{n}")),
+            "conditional_authorization":
+                g(f"conditional authorization{n}").lower() in ("yes", "y", "true"),
+            "license_application_date": _parse_date(g(f"application date{n}")),
+            "license_effective_date": _parse_date(g(f"effective date{n}")),
+            "license_expiration_date": _parse_date(g(f"expiration date{n}")),
             "path_azimuth_deg": to_decimal(azimuth),
             "antenna_code": g(f"mainant{n}"),
             "antenna_manufacturer": g(f"mainman{n}"),

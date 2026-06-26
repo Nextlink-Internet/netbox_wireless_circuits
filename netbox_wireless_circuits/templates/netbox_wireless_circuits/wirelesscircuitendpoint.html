@@ -17,6 +17,16 @@
         <tr><th scope="row">County / State</th><td>{{ object.county_state|placeholder }}</td></tr>
         <tr><th scope="row">Latitude / Longitude</th><td>{{ object.latitude|placeholder }} / {{ object.longitude|placeholder }}</td></tr>
         <tr><th scope="row">ASR number</th><td>{{ object.asr_number|placeholder }}</td></tr>
+        <tr>
+          <th scope="row">License status</th>
+          <td>
+            {% if object.license_status %}{% badge object.get_license_status_display bg_color=object.get_license_status_color %}{% else %}{{ ''|placeholder }}{% endif %}
+            {% if object.conditional_authorization %}<span class="badge text-bg-yellow" title="Conditional authorization">Conditional</span>{% endif %}
+          </td>
+        </tr>
+        <tr><th scope="row">License basis</th><td>{{ object.get_license_basis_display|placeholder }}</td></tr>
+        <tr><th scope="row">License application / effective</th><td>{{ object.license_application_date|placeholder }} / {{ object.license_effective_date|placeholder }}</td></tr>
+        <tr><th scope="row">License expires</th><td>{{ object.license_expiration_date|placeholder }}</td></tr>
         <tr><th scope="row">Ground elevation (m/ft)</th><td>{{ object.ground_elevation_m|placeholder }} / {{ object.ground_elevation_ft|placeholder }}</td></tr>
         <tr><th scope="row">Structure height AGL (m/ft)</th><td>{{ object.structure_height_agl_m|placeholder }} / {{ object.structure_height_agl_ft|placeholder }}</td></tr>
         <tr><th scope="row">Centerline AGL (m/ft)</th><td>{{ object.centerline_agl_m|placeholder }} / {{ object.centerline_agl_ft|placeholder }}</td></tr>

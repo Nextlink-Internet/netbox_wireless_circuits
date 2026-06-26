@@ -302,7 +302,8 @@ class WirelessLicenseProfileZabbixSyncView(View):
 
 
 class WirelessLicenseProfileListView(generic.ObjectListView):
-    queryset = models.WirelessLicenseProfile.objects.all()
+    # Prefetch endpoints so the derived license-expiration column doesn't N+1.
+    queryset = models.WirelessLicenseProfile.objects.prefetch_related("endpoints")
     table = tables.WirelessLicenseProfileTable
     filterset = filtersets.WirelessLicenseProfileFilterSet
 

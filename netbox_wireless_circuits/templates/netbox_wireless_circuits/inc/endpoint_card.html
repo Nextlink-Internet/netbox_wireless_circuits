@@ -22,6 +22,17 @@
     <tr><th scope="row">County / State</th><td>{{ endpoint.county_state|placeholder }}</td></tr>
     <tr><th scope="row">Latitude / Longitude</th><td>{{ endpoint.latitude|placeholder }} / {{ endpoint.longitude|placeholder }}</td></tr>
     <tr><th scope="row">ASR number</th><td>{{ endpoint.asr_number|placeholder }}</td></tr>
+    <tr>
+      <th scope="row">License status</th>
+      <td>
+        {% if endpoint.license_status %}
+          {% badge endpoint.get_license_status_display bg_color=endpoint.get_license_status_color %}
+        {% else %}{{ ''|placeholder }}{% endif %}
+        {% if endpoint.license_basis %}<span class="text-muted">({{ endpoint.get_license_basis_display }})</span>{% endif %}
+        {% if endpoint.conditional_authorization %}<span class="badge text-bg-yellow" title="Conditional authorization">Conditional</span>{% endif %}
+      </td>
+    </tr>
+    <tr><th scope="row">License expires</th><td>{{ endpoint.license_expiration_date|placeholder }}</td></tr>
     <tr><th scope="row">Path azimuth (°)</th><td>{{ endpoint.path_azimuth_deg|placeholder }}</td></tr>
     <tr><th scope="row">TX frequency (MHz)</th><td>{{ endpoint.tx_frequency_mhz|placeholder }}</td></tr>
     <tr><th scope="row">Polarization</th><td>{{ endpoint.polarization|placeholder }}</td></tr>

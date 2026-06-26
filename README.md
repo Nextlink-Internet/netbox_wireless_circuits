@@ -224,11 +224,31 @@ A profile with no `radio_configuration` gets no link-type tag.
 
 ### Status conventions
 
-- Use the **native Circuit status** for operational state: `active`, `planned`,
-  `offline`, `decommissioned`.
-- Use the profile's **`registration_status`** only for the license workflow:
-  `engineering`, `submitted`, `registered`, `granted`, `expired`, `cancelled`,
-  `unknown`.
+A wireless link has **two independent status axes** — keep them distinct:
+
+- **Operational state** — the **native Circuit status** (`active`, `planned`,
+  `offline`, `decommissioned`). Whether the link is in service.
+- **FCC license status** — the regulatory state, using coordinator (FCC/Comsearch)
+  vocabulary: `Licensed`, `Applied`, `Proposed`, `Replaced`, `Expired or
+  Terminated`, `Transitional`, `Questionable`, `Protection Declined`, `Temporary`,
+  `Unknown`.
+
+License status is tracked **per endpoint** (each end of the path holds its own
+FCC license), on `WirelessCircuitEndpoint.license_status`. The profile shows a
+single **rolled-up headline badge** (`registration_status`): when the two ends
+match it's that value; when they differ the most attention-worthy status wins and
+the UI flags it **Mixed**.
+
+#### License expiration / renewal tracking
+
+Each endpoint carries its own `license_application_date`, `license_effective_date`,
+and `license_expiration_date` (plus `license_basis` — Primary/Secondary — and a
+`conditional_authorization` flag). The profile surfaces the **earliest** of the two
+ends' expirations as `license_expiration`, with derived `license_expiring_soon`
+(within 90 days) and `license_expired` indicators shown on the profile, the
+circuit's Wireless tab, and the profile list. Filter links due for renewal with
+`?license_expires_before=YYYY-MM-DD`. All of these fields are exposed in the
+[REST API](#rest-api).
 
 ---
 
@@ -771,6 +791,10 @@ maps to endpoint **A** and side `2` to endpoint **Z**. The importer:
   populated transmit-frequency pairs (→ `radio_configuration`).
 - Builds, per row, a **circuit + license profile + A/Z endpoints + per-direction
   modulation targets**, and auto-populates the [antenna catalog](#antenna-catalog).
+- Maps each end's **FCC license status** (`status1`/`status2` → per-endpoint
+  `license_status`, rolled up to the link badge), **license expiration** /
+  effective / application dates, license basis, and conditional-authorization
+  flag — see [Status conventions](#status-conventions).
 
 #### De-duplication on re-upload
 

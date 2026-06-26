@@ -10,6 +10,7 @@ from .choices import (
     DEFAULT_RANKS,
     EndpointSideChoices,
     FrequencyBandChoices,
+    LicenseBasisChoices,
     LLMProviderChoices,
     ModulationChoices,
     ModulationDirectionChoices,
@@ -57,6 +58,10 @@ class WirelessLicenseProfile(NetBoxModel):
         choices=RegistrationStatusChoices,
         default=RegistrationStatusChoices.UNKNOWN,
         blank=True,
+        verbose_name="License status",
+        help_text="Link-level FCC license status. Rolled up from the two ends on "
+                  "import (the more attention-worthy status wins); see each "
+                  "endpoint for its own license status.",
     )
     registration_date = models.DateField(blank=True, null=True)
     registration_completion_date = models.DateField(blank=True, null=True)
@@ -186,6 +191,36 @@ class WirelessLicenseProfile(NetBoxModel):
     def get_registration_status_color(self):
         return RegistrationStatusChoices.colors.get(self.registration_status)
 
+    @property
+    def license_status_mixed(self):
+        """True when the two ends report different FCC license statuses."""
+        statuses = {ep.license_status for ep in self.endpoints.all() if ep.license_status}
+        return len(statuses) > 1
+
+    @property
+    def license_expiration(self):
+        """Earliest license expiration across the two ends (the one to renew first)."""
+        dates = [
+            ep.license_expiration_date
+            for ep in self.endpoints.all()
+            if ep.license_expiration_date
+        ]
+        return min(dates) if dates else None
+
+    @property
+    def license_expiring_soon(self):
+        """True when the earliest license expiration is within the next 90 days."""
+        from datetime import timedelta
+        exp = self.license_expiration
+        if exp is None:
+            return False
+        return date.today() <= exp <= date.today() + timedelta(days=90)
+
+    @property
+    def license_expired(self):
+        exp = self.license_expiration
+        return exp is not None and exp < date.today()
+
     def endpoint_for_side(self, side):
         """Return the endpoint for a given side ('A'/'Z') or None."""
         return self.endpoints.filter(side=side).first()
@@ -265,6 +300,33 @@ class WirelessCircuitEndpoint(NetBoxModel):
     structure_height_agl_ft = models.DecimalField(
         max_digits=10, decimal_places=3, blank=True, null=True,
         verbose_name="Structure height AGL (ft)",
+    )
+
+    # FCC license status for THIS end of the path (each end holds its own license).
+    license_status = models.CharField(
+        max_length=30,
+        choices=RegistrationStatusChoices,
+        blank=True,
+        verbose_name="License status",
+        help_text="This end's FCC license status (e.g. Licensed, Applied).",
+    )
+    license_basis = models.CharField(
+        max_length=20,
+        choices=LicenseBasisChoices,
+        blank=True,
+        verbose_name="License basis",
+        help_text="Primary or Secondary (co-primary) license basis.",
+    )
+    conditional_authorization = models.BooleanField(
+        default=False,
+        verbose_name="Conditional authorization",
+    )
+    license_application_date = models.DateField(blank=True, null=True)
+    license_effective_date = models.DateField(blank=True, null=True)
+    license_expiration_date = models.DateField(
+        blank=True, null=True,
+        help_text="License expiry for this end; the link's earliest is used for "
+                  "renewal tracking.",
     )
 
     # Antenna
@@ -393,6 +455,9 @@ class WirelessCircuitEndpoint(NetBoxModel):
 
     def get_side_color(self):
         return {"A": "blue", "Z": "purple"}.get(self.side, "gray")
+
+    def get_license_status_color(self):
+        return RegistrationStatusChoices.colors.get(self.license_status)
 
 
 class WirelessModulationTarget(NetBoxModel):

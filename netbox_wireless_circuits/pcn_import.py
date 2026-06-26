@@ -37,6 +37,8 @@ ENDPOINT_FIELDS = {
     "side", "pcn_site_name", "county_state", "latitude", "longitude",
     "ground_elevation_m", "ground_elevation_ft", "asr_number",
     "structure_height_agl_m", "structure_height_agl_ft", "path_azimuth_deg",
+    "license_status", "license_basis", "conditional_authorization",
+    "license_application_date", "license_effective_date", "license_expiration_date",
     "antenna_code", "antenna_manufacturer", "antenna_model",
     "antenna_diameter_ft", "antenna_gain_dbi", "antenna_beamwidth_deg",
     "antenna_tilt_deg", "centerline_agl_m", "centerline_agl_ft",
