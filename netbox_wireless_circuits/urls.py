@@ -269,6 +269,44 @@ urlpatterns = [
         kwargs={"model": models.WirelessBandTolerance},
     ),
 
+    # --- Import Status Mapping (license -> circuit status, configurable) ---
+    path(
+        "import-status-maps/",
+        views.WirelessImportStatusMapListView.as_view(),
+        name="wirelessimportstatusmap_list",
+    ),
+    path(
+        "import-status-maps/add/",
+        views.WirelessImportStatusMapEditView.as_view(),
+        name="wirelessimportstatusmap_add",
+    ),
+    path(
+        "import-status-maps/delete/",
+        views.WirelessImportStatusMapBulkDeleteView.as_view(),
+        name="wirelessimportstatusmap_bulk_delete",
+    ),
+    path(
+        "import-status-maps/<int:pk>/",
+        views.WirelessImportStatusMapView.as_view(),
+        name="wirelessimportstatusmap",
+    ),
+    path(
+        "import-status-maps/<int:pk>/edit/",
+        views.WirelessImportStatusMapEditView.as_view(),
+        name="wirelessimportstatusmap_edit",
+    ),
+    path(
+        "import-status-maps/<int:pk>/delete/",
+        views.WirelessImportStatusMapDeleteView.as_view(),
+        name="wirelessimportstatusmap_delete",
+    ),
+    path(
+        "import-status-maps/<int:pk>/changelog/",
+        ObjectChangeLogView.as_view(),
+        name="wirelessimportstatusmap_changelog",
+        kwargs={"model": models.WirelessImportStatusMap},
+    ),
+
     # --- Antennas (reusable antenna catalog) ---
     path(
         "antennas/",

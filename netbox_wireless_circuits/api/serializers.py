@@ -8,6 +8,7 @@ from ..models import (
     WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
+    WirelessImportStatusMap,
     WirelessLicenseProfile,
     WirelessLLMProvider,
     WirelessLLMSettings,
@@ -21,6 +22,7 @@ __all__ = (
     "WirelessModulationTargetSerializer",
     "WirelessGlobalSettingsSerializer",
     "WirelessBandToleranceSerializer",
+    "WirelessImportStatusMapSerializer",
     "WirelessTargetExceptionSerializer",
     "WirelessLLMSettingsSerializer",
     "WirelessLLMProviderSerializer",
@@ -93,6 +95,16 @@ class WirelessBandToleranceSerializer(NetBoxModelSerializer):
             "notes", "tags", "custom_fields", "created", "last_updated",
         )
         brief_fields = ("id", "url", "display", "frequency_band", "tolerance_db")
+
+
+class WirelessImportStatusMapSerializer(NetBoxModelSerializer):
+    class Meta:
+        model = WirelessImportStatusMap
+        fields = (
+            "id", "url", "display", "license_status", "circuit_status", "enabled",
+            "notes", "tags", "custom_fields", "created", "last_updated",
+        )
+        brief_fields = ("id", "url", "display", "license_status", "circuit_status")
 
 
 class WirelessAntennaSerializer(NetBoxModelSerializer):

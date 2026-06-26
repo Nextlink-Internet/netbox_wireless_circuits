@@ -19,9 +19,9 @@ from ..models import WirelessLicenseProfile
 
 logger = logging.getLogger("netbox_wireless_circuits")
 
-# Operational circuit status derived from the link's rolled-up FCC license
-# status (separate axes — this is a sensible starting point operators can edit).
-# A status not listed here falls back to the import form's chosen default.
+# Built-in fallback mapping (operational circuit status per FCC license status),
+# used only if the operator-editable WirelessImportStatusMap table is empty.
+# The table (seeded with these same defaults) is the source of truth at runtime.
 LICENSE_TO_CIRCUIT_STATUS = {
     "licensed": "active",
     "temporary": "active",
@@ -35,9 +35,20 @@ LICENSE_TO_CIRCUIT_STATUS = {
 }
 
 
-def _derive_status(profile_data, fallback):
+def _load_status_map():
+    """Operator-configured license→circuit status map (enabled rows), or defaults."""
+    from ..models import WirelessImportStatusMap
+
+    rows = dict(
+        WirelessImportStatusMap.objects.filter(enabled=True)
+        .values_list("license_status", "circuit_status")
+    )
+    return rows or dict(LICENSE_TO_CIRCUIT_STATUS)
+
+
+def _derive_status(profile_data, fallback, status_map):
     license_status = (profile_data or {}).get("registration_status") or ""
-    return LICENSE_TO_CIRCUIT_STATUS.get(license_status, fallback)
+    return status_map.get(license_status, fallback)
 
 
 def _resolve_circuit_type(source, circuit_type):
@@ -175,6 +186,7 @@ def run_import(source, file_obj, *, provider, circuit_type=None, status="active"
     policy reports changes on existing links without modifying them.
     """
     effective_type = _resolve_circuit_type(source, circuit_type)
+    status_map = _load_status_map()
     report = {
         "source": source.name,
         "total": 0,
@@ -193,7 +205,9 @@ def run_import(source, file_obj, *, provider, circuit_type=None, status="active"
                 .first()
             )
             if existing is None:
-                link_status = _derive_status(parsed.data.get("profile"), status)
+                link_status = _derive_status(
+                    parsed.data.get("profile"), status, status_map
+                )
                 circuit, _ = _create_link(
                     parsed, source.name, provider, effective_type, link_status
                 )

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 
+from circuits.choices import CircuitStatusChoices
 from netbox.models import NetBoxModel
 
 from .choices import (
@@ -27,6 +28,7 @@ __all__ = (
     "WirelessLLMSettings",
     "WirelessLLMProvider",
     "WirelessAntenna",
+    "WirelessImportStatusMap",
 )
 
 
@@ -910,3 +912,49 @@ class WirelessAntenna(NetBoxModel):
         return reverse(
             "plugins:netbox_wireless_circuits:wirelessantenna", args=[self.pk]
         )
+
+
+class WirelessImportStatusMap(NetBoxModel):
+    """
+    Operator-configurable mapping from FCC **license status** to the native
+    **Circuit operational status** applied during bulk CSV import. The importer
+    sets each new circuit's status from its rolled-up license status using the
+    enabled rows here; a license status with no enabled row falls back to the
+    import form's default. Seeded with sensible defaults; fully editable.
+    """
+
+    license_status = models.CharField(
+        max_length=30,
+        choices=RegistrationStatusChoices,
+        unique=True,
+        verbose_name="License status",
+    )
+    circuit_status = models.CharField(
+        max_length=50,
+        choices=CircuitStatusChoices,
+        verbose_name="Circuit status",
+        help_text="Operational circuit status applied to imported links whose "
+                  "license status matches.",
+    )
+    enabled = models.BooleanField(
+        default=True,
+        help_text="If unset, this license status falls back to the import "
+                  "form's default status.",
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("license_status",)
+        verbose_name = "Wireless Import Status Map"
+        verbose_name_plural = "Wireless Import Status Maps"
+
+    def __str__(self):
+        return f"{self.get_license_status_display()} → {self.get_circuit_status_display()}"
+
+    def get_absolute_url(self):
+        return reverse(
+            "plugins:netbox_wireless_circuits:wirelessimportstatusmap", args=[self.pk]
+        )
+
+    def get_license_status_color(self):
+        return RegistrationStatusChoices.colors.get(self.license_status)

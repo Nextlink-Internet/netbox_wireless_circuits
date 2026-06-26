@@ -62,6 +62,7 @@ menu = PluginMenu(
             _plain("wirelessllmsettings", "LLM Settings", "change_wirelessllmsettings"),
         )),
         ("Settings", (
+            _item("wirelessimportstatusmap", "Import Status Mapping"),
             _plain("wirelessglobalsettings", "Global Settings", "change_wirelessglobalsettings"),
         )),
     ),

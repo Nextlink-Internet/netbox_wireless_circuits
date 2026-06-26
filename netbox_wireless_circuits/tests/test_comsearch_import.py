@@ -19,7 +19,10 @@ from netbox_wireless_circuits.importers.base import (
 from netbox_wireless_circuits.choices import rollup_license_status
 from netbox_wireless_circuits.importers.comsearch import ComsearchCSVSource
 from netbox_wireless_circuits.importers.engine import run_import
-from netbox_wireless_circuits.models import WirelessLicenseProfile
+from netbox_wireless_circuits.models import (
+    WirelessImportStatusMap,
+    WirelessLicenseProfile,
+)
 
 
 # A representative Comsearch row (only the columns the adapter reads).
@@ -266,9 +269,27 @@ class EngineIdempotencyTests(TestCase):
         self.assertEqual(circuit.type.name, "Licensed Microwave")
 
     def test_circuit_status_derived_from_license_status(self):
-        # BASE_ROW rolls up to "proposed" -> operational status "planned".
+        # BASE_ROW rolls up to "proposed" -> operational status "planned" (seeded).
         self._run([dict(BASE_ROW)])
         self.assertEqual(Circuit.objects.get().status, "planned")
+
+    def test_status_map_is_operator_configurable(self):
+        # Operator remaps "proposed" -> "offline"; the import must honor it.
+        WirelessImportStatusMap.objects.update_or_create(
+            license_status="proposed",
+            defaults={"circuit_status": "offline", "enabled": True},
+        )
+        self._run([dict(BASE_ROW)])
+        self.assertEqual(Circuit.objects.get().status, "offline")
+
+    def test_disabled_status_map_falls_back_to_default(self):
+        # Disabling the matching row falls back to the form's default status.
+        WirelessImportStatusMap.objects.update_or_create(
+            license_status="proposed",
+            defaults={"circuit_status": "offline", "enabled": False},
+        )
+        self._run([dict(BASE_ROW)])  # _run passes no status -> default "active"
+        self.assertEqual(Circuit.objects.get().status, "active")
 
     def test_two_distinct_links_create_two_circuits(self):
         row2 = dict(BASE_ROW, **{

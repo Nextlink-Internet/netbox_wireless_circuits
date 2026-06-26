@@ -180,7 +180,8 @@ plugins navigation section, organized into four groups:
   the import hub — choose PCN-PDF or Comsearch/CSV bulk import there).
 - **Catalog** — *Antennas*, *Target Exceptions*, *Band Tolerances*.
 - **LLM Import** — *LLM Providers*, *Available LLM Models*, *LLM Settings*.
-- **Settings** — *Global Settings*.
+- **Settings** — *Import Status Mapping* (license → circuit status for CSV
+  import), *Global Settings*.
 
 (Endpoints and modulation targets are **per-circuit** children — you manage them
 from a circuit's *Wireless License* tab / profile page, not from a global list.)
@@ -798,9 +799,11 @@ maps to endpoint **A** and side `2` to endpoint **Z**. The importer:
 - **Circuit type** and **status** are handled for you: type defaults to the
   source's kind (Comsearch → **Licensed Microwave**, get-or-created) unless you
   pick one, and each circuit's **operational status** is derived from its FCC
-  license status (Licensed → `active`, Applied/Proposed/Transitional/Questionable
-  → `planned`, Replaced/Expired or Terminated → `decommissioned`); the form's
-  status is only a fallback.
+  license status via an **operator-editable mapping** (*Wireless Circuits →
+  Import Status Mapping*), seeded with: Licensed → `active`,
+  Applied/Proposed/Transitional/Questionable → `planned`, Replaced/Expired or
+  Terminated → `decommissioned`. Edit, disable, or add rows there; a license
+  status with no enabled row falls back to the import form's default status.
 
 #### De-duplication on re-upload
 

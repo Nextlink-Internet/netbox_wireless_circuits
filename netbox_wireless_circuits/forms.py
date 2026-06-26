@@ -12,6 +12,7 @@ from .models import (
     WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
+    WirelessImportStatusMap,
     WirelessLicenseProfile,
     WirelessLLMProvider,
     WirelessLLMSettings,
@@ -25,6 +26,7 @@ __all__ = (
     "WirelessModulationTargetForm",
     "WirelessGlobalSettingsForm",
     "WirelessBandToleranceForm",
+    "WirelessImportStatusMapForm",
     "WirelessAntennaForm",
     "WirelessTargetExceptionForm",
     "WirelessLLMSettingsForm",
@@ -233,6 +235,18 @@ class WirelessBandToleranceForm(NetBoxModelForm):
         fields = (
             "frequency_band",
             "tolerance_db",
+            "enabled",
+            "notes",
+            "tags",
+        )
+
+
+class WirelessImportStatusMapForm(NetBoxModelForm):
+    class Meta:
+        model = WirelessImportStatusMap
+        fields = (
+            "license_status",
+            "circuit_status",
             "enabled",
             "notes",
             "tags",

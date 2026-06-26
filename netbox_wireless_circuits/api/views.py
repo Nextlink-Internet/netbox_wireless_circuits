@@ -20,6 +20,7 @@ from ..models import (
     WirelessBandTolerance,
     WirelessCircuitEndpoint,
     WirelessGlobalSettings,
+    WirelessImportStatusMap,
     WirelessLicenseProfile,
     WirelessLLMProvider,
     WirelessLLMSettings,
@@ -31,6 +32,7 @@ from .serializers import (
     WirelessBandToleranceSerializer,
     WirelessCircuitEndpointSerializer,
     WirelessGlobalSettingsSerializer,
+    WirelessImportStatusMapSerializer,
     WirelessLicenseProfileSerializer,
     WirelessLLMProviderSerializer,
     WirelessLLMSettingsSerializer,
@@ -211,6 +213,11 @@ class WirelessTargetExceptionViewSet(NetBoxModelViewSet):
 class WirelessBandToleranceViewSet(NetBoxModelViewSet):
     queryset = WirelessBandTolerance.objects.prefetch_related("tags")
     serializer_class = WirelessBandToleranceSerializer
+
+
+class WirelessImportStatusMapViewSet(NetBoxModelViewSet):
+    queryset = WirelessImportStatusMap.objects.prefetch_related("tags")
+    serializer_class = WirelessImportStatusMapSerializer
 
 
 class WirelessAntennaViewSet(NetBoxModelViewSet):

@@ -430,6 +430,33 @@ class WirelessBandToleranceBulkDeleteView(generic.BulkDeleteView):
 
 
 # ---------------------------------------------------------------------------
+# WirelessImportStatusMap (operator-editable license→circuit status mapping)
+# ---------------------------------------------------------------------------
+
+class WirelessImportStatusMapView(generic.ObjectView):
+    queryset = models.WirelessImportStatusMap.objects.all()
+
+
+class WirelessImportStatusMapListView(generic.ObjectListView):
+    queryset = models.WirelessImportStatusMap.objects.all()
+    table = tables.WirelessImportStatusMapTable
+
+
+class WirelessImportStatusMapEditView(generic.ObjectEditView):
+    queryset = models.WirelessImportStatusMap.objects.all()
+    form = forms.WirelessImportStatusMapForm
+
+
+class WirelessImportStatusMapDeleteView(generic.ObjectDeleteView):
+    queryset = models.WirelessImportStatusMap.objects.all()
+
+
+class WirelessImportStatusMapBulkDeleteView(generic.BulkDeleteView):
+    queryset = models.WirelessImportStatusMap.objects.all()
+    table = tables.WirelessImportStatusMapTable
+
+
+# ---------------------------------------------------------------------------
 # WirelessAntenna (reusable antenna catalog / "warehouse")
 # ---------------------------------------------------------------------------
 

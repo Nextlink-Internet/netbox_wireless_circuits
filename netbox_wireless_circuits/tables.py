@@ -6,6 +6,7 @@ from .models import (
     WirelessAntenna,
     WirelessBandTolerance,
     WirelessCircuitEndpoint,
+    WirelessImportStatusMap,
     WirelessLicenseProfile,
     WirelessLLMProvider,
     WirelessModulationTarget,
@@ -145,6 +146,21 @@ class WirelessBandToleranceTable(NetBoxTable):
         )
         default_columns = ("frequency_band", "tolerance_db", "enabled")
         order_by = ("frequency_band",)
+
+
+class WirelessImportStatusMapTable(NetBoxTable):
+    license_status = columns.ChoiceFieldColumn(linkify=True)
+    circuit_status = columns.ChoiceFieldColumn()
+    enabled = columns.BooleanColumn()
+
+    class Meta(NetBoxTable.Meta):
+        model = WirelessImportStatusMap
+        fields = (
+            "pk", "id", "license_status", "circuit_status", "enabled",
+            "created", "last_updated",
+        )
+        default_columns = ("license_status", "circuit_status", "enabled")
+        order_by = ("license_status",)
 
 
 class WirelessAntennaTable(NetBoxTable):
