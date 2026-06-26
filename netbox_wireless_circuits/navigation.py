@@ -48,8 +48,8 @@ menu = PluginMenu(
     groups=(
         ("Circuits", (
             _item("wirelesslicenseprofile", "Wireless License Profiles", with_import=True),
+            # Single unified entry; it routes to the PCN-PDF wizard or CSV import.
             _plain("import_hub", "Import", "add_wirelesslicenseprofile"),
-            _plain("pcn_import", "Import from PCN PDF", "add_wirelesslicenseprofile"),
         )),
         ("Catalog", (
             _item("wirelessantenna", "Antennas"),

@@ -176,8 +176,8 @@ Global Settings. Without nbxsync, every other feature works unchanged.
 Everything the plugin adds lives in its own **Wireless Circuits** menu in the
 plugins navigation section, organized into four groups:
 
-- **Circuits** — *Wireless License Profiles*, *Import* (the hub for PCN-PDF and
-  Comsearch/CSV bulk import), *Import from PCN PDF*.
+- **Circuits** — *Wireless License Profiles*, *Import* (a single entry that opens
+  the import hub — choose PCN-PDF or Comsearch/CSV bulk import there).
 - **Catalog** — *Antennas*, *Target Exceptions*, *Band Tolerances*.
 - **LLM Import** — *LLM Providers*, *Available LLM Models*, *LLM Settings*.
 - **Settings** — *Global Settings*.
@@ -430,7 +430,7 @@ layout (appended to the extraction prompt).
 
 ### Step 5 — import
 
-**Wireless Circuits → Import from PCN PDF**:
+**Wireless Circuits → Import → Open PDF importer**:
 
 1. Upload the PDF and click **Extract**.
 2. The review step shows shared **Provider** / **Circuit type** selectors and an
