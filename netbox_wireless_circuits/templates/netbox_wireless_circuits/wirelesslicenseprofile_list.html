@@ -1,0 +1,12 @@
+{% extends 'generic/object_list.html' %}
+
+{# Header "Import" button -> the unified import hub (PCN PDF / Comsearch CSV).
+   The default BulkImport action is removed in the view because its URL doesn't
+   resolve for this plugin's path-wired importer. #}
+{% block extra_controls %}
+  {% if perms.netbox_wireless_circuits.add_wirelesslicenseprofile %}
+    <a href="{% url 'plugins:netbox_wireless_circuits:import_hub' %}" class="btn btn-primary">
+      <span class="mdi mdi-upload" aria-hidden="true"></span> Import
+    </a>
+  {% endif %}
+{% endblock %}

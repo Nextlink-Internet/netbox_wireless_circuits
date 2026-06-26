@@ -8,6 +8,7 @@ from django.views.generic import View
 
 from circuits.models import Circuit
 from dcim.models import Site
+from netbox.object_actions import AddObject, BulkDelete, BulkExport
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 
@@ -307,6 +308,12 @@ class WirelessLicenseProfileListView(generic.ObjectListView):
     queryset = models.WirelessLicenseProfile.objects.prefetch_related("endpoints")
     table = tables.WirelessLicenseProfileTable
     filterset = filtersets.WirelessLicenseProfileFilterSet
+    # Drop the default BulkImport action (its URL doesn't resolve for this
+    # plugin's path-wired view) and the unused bulk-edit/rename actions; the
+    # header gets an "Import" button to the unified import hub instead (see the
+    # custom template's extra_controls block).
+    actions = (AddObject, BulkExport, BulkDelete)
+    template_name = "netbox_wireless_circuits/wirelesslicenseprofile_list.html"
 
 
 class WirelessLicenseProfileEditView(generic.ObjectEditView):
@@ -368,6 +375,9 @@ class WirelessModulationTargetListView(generic.ObjectListView):
     queryset = models.WirelessModulationTarget.objects.all()
     table = tables.WirelessModulationTargetTable
     filterset = filtersets.WirelessModulationTargetFilterSet
+    # Same as profiles: drop the unresolved default BulkImport/bulk-edit actions.
+    # The CID-keyed modulation importer remains at its own URL.
+    actions = (AddObject, BulkExport, BulkDelete)
 
 
 class WirelessModulationTargetEditView(generic.ObjectEditView):
