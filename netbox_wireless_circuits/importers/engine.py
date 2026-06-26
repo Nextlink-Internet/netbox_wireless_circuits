@@ -11,12 +11,48 @@ create path, so each link is all-or-nothing and a bad row can't abort the batch.
 import logging
 from decimal import Decimal, InvalidOperation
 
-from circuits.models import Circuit
+from circuits.models import Circuit, CircuitType
+from django.utils.text import slugify
 
 from .. import pcn_import
 from ..models import WirelessLicenseProfile
 
 logger = logging.getLogger("netbox_wireless_circuits")
+
+# Operational circuit status derived from the link's rolled-up FCC license
+# status (separate axes — this is a sensible starting point operators can edit).
+# A status not listed here falls back to the import form's chosen default.
+LICENSE_TO_CIRCUIT_STATUS = {
+    "licensed": "active",
+    "temporary": "active",
+    "applied": "planned",
+    "proposed": "planned",
+    "transitional": "planned",
+    "questionable": "planned",
+    "protection_declined": "planned",
+    "replaced": "decommissioned",
+    "expired_terminated": "decommissioned",
+}
+
+
+def _derive_status(profile_data, fallback):
+    license_status = (profile_data or {}).get("registration_status") or ""
+    return LICENSE_TO_CIRCUIT_STATUS.get(license_status, fallback)
+
+
+def _resolve_circuit_type(source, circuit_type):
+    """Use the explicit circuit type, else get-or-create the source's default."""
+    if circuit_type is not None:
+        return circuit_type
+    name = getattr(source, "default_circuit_type", None)
+    if not name:
+        raise ValueError(
+            "No circuit type provided and the import source declares no default."
+        )
+    ct, _ = CircuitType.objects.get_or_create(
+        name=name, defaults={"slug": slugify(name)}
+    )
+    return ct
 
 # Fields compared when reporting changes on an existing link. Operator-owned
 # data (NetBox site/device/interface links, tags, exceptions, antenna catalog
@@ -120,10 +156,15 @@ def _fmt(v):
     return str(v)
 
 
-def run_import(source, file_obj, *, provider, circuit_type, status="active",
+def run_import(source, file_obj, *, provider, circuit_type=None, status="active",
                apply_changes=False, progress=None):
     """
     Import every link the ``source`` yields from ``file_obj``.
+
+    ``circuit_type`` may be None — the source's ``default_circuit_type`` is then
+    get-or-created (e.g. Comsearch → "Licensed Microwave"). ``status`` is only a
+    fallback: each new circuit's operational status is derived from its FCC
+    license status (see :data:`LICENSE_TO_CIRCUIT_STATUS`).
 
     Returns a report dict::
 
@@ -133,6 +174,7 @@ def run_import(source, file_obj, *, provider, circuit_type, status="active",
     ``apply_changes`` is reserved for a future write-on-update mode; the current
     policy reports changes on existing links without modifying them.
     """
+    effective_type = _resolve_circuit_type(source, circuit_type)
     report = {
         "source": source.name,
         "total": 0,
@@ -151,8 +193,9 @@ def run_import(source, file_obj, *, provider, circuit_type, status="active",
                 .first()
             )
             if existing is None:
+                link_status = _derive_status(parsed.data.get("profile"), status)
                 circuit, _ = _create_link(
-                    parsed, source.name, provider, circuit_type, status
+                    parsed, source.name, provider, effective_type, link_status
                 )
                 report["created"].append({"cid": circuit.cid, "key": parsed.key})
             else:

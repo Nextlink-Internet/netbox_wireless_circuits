@@ -256,6 +256,20 @@ class EngineIdempotencyTests(TestCase):
         self.assertEqual(ep_a.license_basis, "primary")
         self.assertEqual(ep_a.license_expiration_date, date(2030, 6, 23))
 
+    def test_circuit_type_defaults_to_source_default(self):
+        # No circuit_type passed -> source default "Licensed Microwave" get-or-created.
+        run_import(
+            get_source("comsearch"), make_csv([dict(BASE_ROW)]),
+            provider=self.provider, circuit_type=None,
+        )
+        circuit = Circuit.objects.get()
+        self.assertEqual(circuit.type.name, "Licensed Microwave")
+
+    def test_circuit_status_derived_from_license_status(self):
+        # BASE_ROW rolls up to "proposed" -> operational status "planned".
+        self._run([dict(BASE_ROW)])
+        self.assertEqual(Circuit.objects.get().status, "planned")
+
     def test_two_distinct_links_create_two_circuits(self):
         row2 = dict(BASE_ROW, **{
             "site1": "MN-WINDOM-SW-1", "site2": "MN-OKABENA-SW-1",

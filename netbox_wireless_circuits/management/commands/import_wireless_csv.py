@@ -27,8 +27,16 @@ class Command(BaseCommand):
                  f"Available: {', '.join(s.name for s in all_sources())}.",
         )
         parser.add_argument("--provider", required=True, help="Provider name.")
-        parser.add_argument("--type", required=True, help="Circuit type name.")
-        parser.add_argument("--status", default="active", help="Circuit status (default: active).")
+        parser.add_argument(
+            "--type", default=None,
+            help="Circuit type name. Omit to use the source's default "
+                 "(e.g. Comsearch -> 'Licensed Microwave', created if needed).",
+        )
+        parser.add_argument(
+            "--status", default="active",
+            help="Fallback circuit status; status is otherwise derived from each "
+                 "link's FCC license status (default fallback: active).",
+        )
 
     def handle(self, *args, **options):
         source = get_source(options["source"])
@@ -41,10 +49,12 @@ class Command(BaseCommand):
             provider = Provider.objects.get(name=options["provider"])
         except Provider.DoesNotExist:
             raise CommandError(f"Provider {options['provider']!r} not found.")
-        try:
-            circuit_type = CircuitType.objects.get(name=options["type"])
-        except CircuitType.DoesNotExist:
-            raise CommandError(f"Circuit type {options['type']!r} not found.")
+        circuit_type = None
+        if options["type"]:
+            try:
+                circuit_type = CircuitType.objects.get(name=options["type"])
+            except CircuitType.DoesNotExist:
+                raise CommandError(f"Circuit type {options['type']!r} not found.")
 
         with open(options["csv_file"], "rb") as fh:
             report = run_import(

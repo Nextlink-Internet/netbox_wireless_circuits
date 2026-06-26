@@ -79,6 +79,9 @@ class BaseCSVSource:
     name = ""          # machine name, e.g. "comsearch"
     label = ""         # human label shown in the UI
     description = ""    # one-line help shown under the source picker
+    # Circuit type get-or-created when the operator leaves the field blank
+    # (a source maps to a known kind of circuit, e.g. licensed microwave).
+    default_circuit_type = None
 
     def iter_links(self, file_obj):
         """Yield :class:`ParsedLink` for each link in the uploaded file."""

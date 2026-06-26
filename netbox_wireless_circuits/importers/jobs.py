@@ -30,7 +30,10 @@ class WirelessCSVImportJob(JobRunner):
         if source is None:
             raise ValueError(f"Unknown import source: {source_name!r}")
         provider = Provider.objects.get(pk=provider_id)
-        circuit_type = CircuitType.objects.get(pk=circuit_type_id)
+        # None -> the engine get-or-creates the source's default circuit type.
+        circuit_type = (
+            CircuitType.objects.get(pk=circuit_type_id) if circuit_type_id else None
+        )
 
         try:
             with open(file_path, "rb") as fh:

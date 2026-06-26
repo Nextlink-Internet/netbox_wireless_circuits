@@ -36,11 +36,14 @@
       <div class="card-body">
         <p class="text-muted">
           Pick the <strong>data source</strong> (each coordinator export has its own
-          column layout), the provider / circuit type / status applied to every
-          created circuit, then upload the file. The import runs as a background job:
-          <strong>new links are created</strong>; links already present (matched on
-          the source's stable per-link key) are <strong>reported, not modified</strong>,
-          so re-uploading the same or an updated export never creates duplicates.
+          column layout) and a <strong>provider</strong>, then upload the file.
+          <strong>Circuit type</strong> defaults to the source's kind (Comsearch →
+          <em>Licensed Microwave</em>) and each circuit's <strong>status</strong> is
+          derived from its FCC license status — both are optional overrides below.
+          The import runs as a background job: <strong>new links are created</strong>;
+          links already present (matched on the source's stable per-link key) are
+          <strong>reported, not modified</strong>, so re-uploading the same or an
+          updated export never creates duplicates.
         </p>
 
         {% if sources %}

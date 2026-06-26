@@ -118,13 +118,14 @@ class WirelessImportHubView(View):
                 fh.write(chunk)
 
         source = get_source(form.cleaned_data["source"])
+        circuit_type = form.cleaned_data.get("circuit_type")
         job = WirelessCSVImportJob.enqueue(
             user=request.user,
             source_name=form.cleaned_data["source"],
             file_path=path,
             provider_id=form.cleaned_data["provider"].pk,
-            circuit_type_id=form.cleaned_data["circuit_type"].pk,
-            status=form.cleaned_data["status"],
+            circuit_type_id=circuit_type.pk if circuit_type else None,
+            status=form.cleaned_data.get("status") or "active",
         )
         messages.success(
             request,

@@ -795,6 +795,12 @@ maps to endpoint **A** and side `2` to endpoint **Z**. The importer:
   `license_status`, rolled up to the link badge), **license expiration** /
   effective / application dates, license basis, and conditional-authorization
   flag — see [Status conventions](#status-conventions).
+- **Circuit type** and **status** are handled for you: type defaults to the
+  source's kind (Comsearch → **Licensed Microwave**, get-or-created) unless you
+  pick one, and each circuit's **operational status** is derived from its FCC
+  license status (Licensed → `active`, Applied/Proposed/Transitional/Questionable
+  → `planned`, Replaced/Expired or Terminated → `decommissioned`); the form's
+  status is only a fallback.
 
 #### De-duplication on re-upload
 

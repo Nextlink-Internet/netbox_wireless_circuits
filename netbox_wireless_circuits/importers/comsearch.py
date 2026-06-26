@@ -68,6 +68,7 @@ def _drop_empty(d):
 class ComsearchCSVSource(BaseCSVSource):
     name = "comsearch"
     label = "Comsearch (microwave links export)"
+    default_circuit_type = "Licensed Microwave"
     description = (
         "Comsearch CommSearch / microwave links CSV (one link per row, sides 1/2 "
         "→ endpoints A/Z). De-duplicated on site pair + band + RCN + frequency."

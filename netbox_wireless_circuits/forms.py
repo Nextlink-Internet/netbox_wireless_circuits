@@ -432,12 +432,16 @@ class WirelessCSVImportForm(forms.Form):
         help_text="Provider / licensing context applied to every created circuit.",
     )
     circuit_type = DynamicModelChoiceField(
-        queryset=CircuitType.objects.all(), label="Circuit type",
-        help_text="Circuit type applied to every created circuit.",
+        queryset=CircuitType.objects.all(), label="Circuit type", required=False,
+        help_text="Optional — leave blank to use the source's default "
+                  "(Comsearch → 'Licensed Microwave', created if needed).",
     )
     status = forms.ChoiceField(
-        choices=CircuitStatusChoices, initial="active", label="Circuit status",
-        help_text="Native circuit status applied to every created circuit.",
+        choices=CircuitStatusChoices, initial="active",
+        label="Default circuit status", required=False,
+        help_text="Fallback only — each circuit's status is derived from its FCC "
+                  "license status (Licensed → active, Applied/Proposed → planned, "
+                  "Expired/Replaced → decommissioned). Used when none is implied.",
     )
 
     def __init__(self, *args, **kwargs):
