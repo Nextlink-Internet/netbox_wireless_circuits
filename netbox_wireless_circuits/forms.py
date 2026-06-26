@@ -1,5 +1,6 @@
 from django import forms
 
+from circuits.choices import CircuitStatusChoices
 from circuits.models import Circuit, CircuitType, Provider
 from dcim.models import Device, Interface, Site
 from netbox.forms import NetBoxModelForm, NetBoxModelImportForm
@@ -30,6 +31,7 @@ __all__ = (
     "WirelessLLMProviderForm",
     "WirelessPCNUploadForm",
     "WirelessPCNConfirmForm",
+    "WirelessCSVImportForm",
     "WirelessLicenseProfileImportForm",
     "WirelessModulationTargetImportForm",
 )
@@ -396,6 +398,46 @@ class WirelessPCNConfirmForm(forms.Form):
         if not isinstance(data, dict):
             raise forms.ValidationError("Top-level value must be a JSON object.")
         return data
+
+
+# ---------------------------------------------------------------------------
+# Source-aware bulk CSV import (Comsearch & future coordinators)
+# ---------------------------------------------------------------------------
+
+class WirelessCSVImportForm(forms.Form):
+    """
+    Bulk-import a coordinator's CSV export. The operator picks the data source
+    (each has its own column layout), the provider / circuit type / status applied
+    to every created circuit, and uploads the file. The import runs as a background
+    job; existing links are reported, not modified.
+    """
+
+    source = forms.ChoiceField(
+        label="Data source",
+        help_text="Which coordinator export this CSV is. Each source maps its own "
+                  "columns and de-duplicates on its own stable per-link key.",
+    )
+    file = forms.FileField(
+        label="CSV file",
+        help_text="The coordinator export to import.",
+    )
+    provider = DynamicModelChoiceField(
+        queryset=Provider.objects.all(), label="Provider",
+        help_text="Provider / licensing context applied to every created circuit.",
+    )
+    circuit_type = DynamicModelChoiceField(
+        queryset=CircuitType.objects.all(), label="Circuit type",
+        help_text="Circuit type applied to every created circuit.",
+    )
+    status = forms.ChoiceField(
+        choices=CircuitStatusChoices, initial="active", label="Circuit status",
+        help_text="Native circuit status applied to every created circuit.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .importers import all_sources
+        self.fields["source"].choices = [(s.name, s.label) for s in all_sources()]
 
 
 # ---------------------------------------------------------------------------

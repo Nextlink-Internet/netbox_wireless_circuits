@@ -135,8 +135,39 @@ class WirelessLicenseProfile(NetBoxModel):
                   "the profile will also delete that circuit and its terminations.",
     )
 
+    # --- External data-source provenance / de-duplication ---
+    # The bulk CSV importer is source-aware: each data source (e.g. Comsearch)
+    # has its own column layout and computes a stable per-link key. Storing the
+    # (source, key) lets a re-upload match an existing link instead of creating
+    # a duplicate. Both blank for manually-created or PCN-PDF-created profiles.
+    import_source = models.CharField(
+        max_length=50, blank=True,
+        verbose_name="Import source",
+        help_text="External data source this link was imported from, e.g. 'comsearch'.",
+    )
+    import_key = models.CharField(
+        max_length=200, blank=True, db_index=True,
+        verbose_name="Import key",
+        help_text="Stable per-link de-duplication key within the import source; "
+                  "a re-upload updates the matching link instead of duplicating it.",
+    )
+    import_link_id = models.CharField(
+        max_length=100, blank=True,
+        verbose_name="Import link ID",
+        help_text="The source's own link identifier, retained for traceability.",
+    )
+
     class Meta:
         ordering = ("circuit",)
+        constraints = [
+            # One link per (source, key). Partial so the many manually-created /
+            # PCN-PDF profiles (blank key) are not forced unique against each other.
+            models.UniqueConstraint(
+                fields=["import_source", "import_key"],
+                condition=models.Q(import_key__gt=""),
+                name="wwc_profile_unique_import_source_key",
+            ),
+        ]
         verbose_name = "Wireless License Profile"
         verbose_name_plural = "Wireless License Profiles"
 

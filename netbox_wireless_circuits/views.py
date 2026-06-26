@@ -1,5 +1,7 @@
 import base64
 import json
+import os
+import tempfile
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -68,6 +70,68 @@ class WirelessLicenseProfileView(generic.ObjectView):
             "global_settings": models.WirelessGlobalSettings.load(),
             "zabbix_sync_available": sync_enabled(),
         }
+
+
+class WirelessImportHubView(View):
+    """
+    Unified import landing page. Choose an import **type** (PCN PDF — routed to
+    the existing wizard — or bulk CSV) and, for CSV, a **data source** (Comsearch
+    today; others later). The CSV upload is dispatched to a background job so a
+    large export (thousands of links) never blocks the request.
+    """
+
+    template_name = "netbox_wireless_circuits/wireless_import.html"
+    permissions = (
+        "circuits.add_circuit",
+        "netbox_wireless_circuits.add_wirelesslicenseprofile",
+    )
+
+    def _check_perm(self, request):
+        if not all(request.user.has_perm(p) for p in self.permissions):
+            raise PermissionDenied()
+
+    def get(self, request):
+        self._check_perm(request)
+        from .importers import all_sources
+
+        return render(request, self.template_name, {
+            "form": forms.WirelessCSVImportForm(),
+            "sources": all_sources(),
+        })
+
+    def post(self, request):
+        self._check_perm(request)
+        from .importers import all_sources, get_source
+        from .importers.jobs import WirelessCSVImportJob
+
+        form = forms.WirelessCSVImportForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {
+                "form": form, "sources": all_sources(),
+            })
+
+        # Persist the upload to a temp file the rq worker can read, then enqueue.
+        upload = form.cleaned_data["file"]
+        fd, path = tempfile.mkstemp(prefix="wireless_csv_import_", suffix=".csv")
+        with os.fdopen(fd, "wb") as fh:
+            for chunk in upload.chunks():
+                fh.write(chunk)
+
+        source = get_source(form.cleaned_data["source"])
+        job = WirelessCSVImportJob.enqueue(
+            user=request.user,
+            source_name=form.cleaned_data["source"],
+            file_path=path,
+            provider_id=form.cleaned_data["provider"].pk,
+            circuit_type_id=form.cleaned_data["circuit_type"].pk,
+            status=form.cleaned_data["status"],
+        )
+        messages.success(
+            request,
+            f"{source.label if source else 'CSV'} import queued as job #{job.pk}. "
+            f"New links are created and existing links are reported, not modified.",
+        )
+        return redirect(job.get_absolute_url())
 
 
 class WirelessPCNImportView(View):

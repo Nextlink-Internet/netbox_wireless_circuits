@@ -24,7 +24,8 @@ Built and maintained by [Nextlink Internet](https://nextlinkinternet.com).
 - [PCN PDF import (LLM-assisted)](#pcn-pdf-import-llm-assisted) — **how to wire up the LLMs + recommended models**
 - [Zabbix integration via nbxsync](#zabbix-integration-via-nbxsync)
 - [REST API](#rest-api)
-- [CSV import](#csv-import)
+- [Bulk import (Comsearch & other coordinator CSV exports)](#bulk-import-comsearch--other-coordinator-csv-exports)
+- [CSV import (single-model, by CID)](#csv-import-single-model-by-cid)
 - [Development & testing](#development--testing)
 - [Keeping these docs current](#keeping-these-docs-current)
 
@@ -76,7 +77,10 @@ system does the math and raises the alarms.
 - Exposes a **Zabbix-friendly REST endpoint** that flattens all of the above
   (including effective thresholds after tolerance and exceptions) into a shape a
   monitoring template can consume directly.
-- Ships **CSV import** for bulk-loading profiles and modulation ladders.
+- Ships a **source-aware bulk CSV importer** (Comsearch today) that builds whole
+  links from a coordinator export, de-duplicates on re-upload, and reports — rather
+  than overwrites — changes to links that already exist; plus simpler CSV importers
+  for bulk-loading profiles and modulation ladders by CID.
 - **Auto-tags each circuit** with its N+0 radio configuration (e.g.
   `link_type: 2+0`) so links are filterable by type in the core Circuits list.
 - Maintains a reusable **antenna catalog ("warehouse")** of make/models that
@@ -169,10 +173,15 @@ Global Settings. Without nbxsync, every other feature works unchanged.
 2. **Create a provider / license context** (Circuits → Providers), e.g.
    `Comsearch`, `FCC/ULS`, or an internal engineering entry.
 
-Everything the plugin adds lives under the core **Circuits** menu, in a
-**Wireless Circuits** group: *Wireless License Profiles*, *Import from PCN PDF*,
-*Antennas*, *Target Exceptions*, *Band Tolerances*, *LLM Providers*,
-*Available LLM Models*, *LLM Settings*, *Global Settings*.
+Everything the plugin adds lives in its own **Wireless Circuits** menu in the
+plugins navigation section, organized into four groups:
+
+- **Circuits** — *Wireless License Profiles*, *Import* (the hub for PCN-PDF and
+  Comsearch/CSV bulk import), *Import from PCN PDF*.
+- **Catalog** — *Antennas*, *Target Exceptions*, *Band Tolerances*.
+- **LLM Import** — *LLM Providers*, *Available LLM Models*, *LLM Settings*.
+- **Settings** — *Global Settings*.
+
 (Endpoints and modulation targets are **per-circuit** children — you manage them
 from a circuit's *Wireless License* tab / profile page, not from a global list.)
 
@@ -737,9 +746,75 @@ NetBox stores the expected values; the consumer performs the comparisons:
 
 ---
 
-## CSV import
+## Bulk import (Comsearch & other coordinator CSV exports)
 
-Two importers are available under **Wireless Circuits → … → Import**.
+**Wireless Circuits → Import** is a single hub that lets you pick an import
+**type** and, for CSV, a **data source**:
+
+- **PCN PDF** — the LLM-assisted, review-then-create wizard for one coordination
+  document (see [PCN PDF import](#pcn-pdf-import-llm-assisted)).
+- **CSV** — bulk-load a coordinator's full export. The importer is **source-aware**:
+  each data source (e.g. **Comsearch**) has its own column layout and its own
+  stable per-link key. Adding another coordinator later is a new adapter, not a
+  rewrite of the importer.
+
+### How the Comsearch CSV import works
+
+Comsearch's microwave-links export carries **one link per (wide) row**; side `1`
+maps to endpoint **A** and side `2` to endpoint **Z**. The importer:
+
+- **Normalizes** the export's formats to the plugin's models: band labels
+  (`11 GHz (10700-11700 MHz) US` → `11 GHz`, `6.1`/`6.7 GHz` → `6 GHz`),
+  modulations (incl. `OFDM 1024QA` → `1024 QAM`, `4 QAM` → `QPSK`),
+  DMS coordinates (`33 10 52.86 N` → signed decimal degrees), and Excel-escaped
+  RCNs (`="260623C5"` → `260623C5`). Carrier count is derived from the number of
+  populated transmit-frequency pairs (→ `radio_configuration`).
+- Builds, per row, a **circuit + license profile + A/Z endpoints + per-direction
+  modulation targets**, and auto-populates the [antenna catalog](#antenna-catalog).
+
+#### De-duplication on re-upload
+
+Each link gets a stable **import key** = unordered **site pair + band + RCN +
+center frequency** (verified unique across the full export), stored on the profile
+as `import_source` (`comsearch`) + `import_key`. On every import:
+
+- a link whose key is **not yet present** is **created**;
+- a link that **already exists** is **diffed and reported — not modified**. The
+  result lists exactly which fields changed for each existing link, so you can
+  review what Comsearch updated without overwriting any operator edits (NetBox
+  site/device/interface links, tags, exceptions, antenna-catalog enrichment are
+  never touched).
+
+So re-uploading the same — or an updated — export **never creates duplicates**.
+
+#### It runs as a background job
+
+A full export is thousands of links, so the upload is dispatched to a **background
+job** (netbox-rq) rather than blocking the request. After you click **Queue
+import** the page redirects to the job, whose result shows the
+**created / changed / unchanged / errors** summary and the per-link change report.
+
+For the initial large load or scheduled re-syncs, the same engine is available on
+the command line:
+
+```bash
+python manage.py import_wireless_csv --source comsearch \
+    --provider "Comsearch" --type "Licensed Microwave" mwlinks-export.csv
+```
+
+`--source`, `--provider`, and `--type` are required; `--status` is optional and
+sets the new circuits' status (default `active`). The command prints the same
+**created / changed / unchanged / errors** summary as the web job, with a line per
+changed link.
+
+`import_source`, `import_key`, and `import_link_id` are exposed on the profile in
+the [REST API](#rest-api).
+
+## CSV import (single-model, by CID)
+
+Two row-per-object importers are also available under
+**Wireless Circuits → … → Import** (the column-header `Import` buttons), for
+loading flat data onto **existing** circuits keyed by CID.
 
 **Profile import** is keyed by Circuit CID and accepts the columns:
 `cid, pcn_date, job_number, rcn_number, band, channel_plan_mhz, path_length_km,

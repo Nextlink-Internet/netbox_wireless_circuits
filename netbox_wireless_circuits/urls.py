@@ -44,6 +44,11 @@ urlpatterns = [
         name="wirelesslicenseprofile_delete",
     ),
     path(
+        "import/",
+        views.WirelessImportHubView.as_view(),
+        name="import_hub",
+    ),
+    path(
         "wireless-license-profiles/pcn-import/",
         views.WirelessPCNImportView.as_view(),
         name="pcn_import",

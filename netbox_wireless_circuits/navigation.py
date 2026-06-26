@@ -48,6 +48,7 @@ menu = PluginMenu(
     groups=(
         ("Circuits", (
             _item("wirelesslicenseprofile", "Wireless License Profiles", with_import=True),
+            _plain("import_hub", "Import", "add_wirelesslicenseprofile"),
             _plain("pcn_import", "Import from PCN PDF", "add_wirelesslicenseprofile"),
         )),
         ("Catalog", (

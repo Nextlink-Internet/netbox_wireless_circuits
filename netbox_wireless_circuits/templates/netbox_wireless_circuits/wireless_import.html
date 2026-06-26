@@ -1,0 +1,82 @@
+{% extends 'base/layout.html' %}
+{% load form_helpers %}
+
+{% block title %}Import wireless circuits{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-10 offset-md-1">
+
+    <div class="card mb-4">
+      <h5 class="card-header">Import wireless circuits</h5>
+      <div class="card-body">
+        <p class="text-muted mb-0">
+          Choose how to import. <strong>PCN PDF</strong> extracts a single
+          coordination document (one or a few links) via an LLM with a review step.
+          <strong>CSV</strong> bulk-loads a coordinator's full export (thousands of
+          links) in the background.
+        </p>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <h6 class="card-header"><i class="mdi mdi-file-pdf-box"></i> Import from a PCN PDF</h6>
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <span class="text-muted">
+          Upload one PCN datasheet; extract, review, and create its circuit(s).
+        </span>
+        <a href="{% url 'plugins:netbox_wireless_circuits:pcn_import' %}" class="btn btn-primary">
+          <i class="mdi mdi-text-box-search"></i> Open PDF importer
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h6 class="card-header"><i class="mdi mdi-table-arrow-up"></i> Import from a CSV export</h6>
+      <div class="card-body">
+        <p class="text-muted">
+          Pick the <strong>data source</strong> (each coordinator export has its own
+          column layout), the provider / circuit type / status applied to every
+          created circuit, then upload the file. The import runs as a background job:
+          <strong>new links are created</strong>; links already present (matched on
+          the source's stable per-link key) are <strong>reported, not modified</strong>,
+          so re-uploading the same or an updated export never creates duplicates.
+        </p>
+
+        {% if sources %}
+        <ul class="text-muted small">
+          {% for s in sources %}<li><strong>{{ s.label }}</strong> — {{ s.description }}</li>{% endfor %}
+        </ul>
+        {% else %}
+        <div class="alert alert-warning">No CSV import sources are registered.</div>
+        {% endif %}
+
+        <form id="csv-import-form" action="{% url 'plugins:netbox_wireless_circuits:import_hub' %}" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          {% render_form form %}
+          <div class="text-end">
+            <a href="{% url 'plugins:netbox_wireless_circuits:wirelesslicenseprofile_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            <button id="csv-import-btn" type="submit" class="btn btn-success"><i class="mdi mdi-upload"></i> Queue import</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  (function () {
+    var form = document.getElementById('csv-import-form');
+    var btn = document.getElementById('csv-import-btn');
+    if (!form || !btn) { return; }
+    form.addEventListener('submit', function () {
+      setTimeout(function () {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Queueing…';
+      }, 0);
+    });
+  })();
+</script>
+{% endblock %}

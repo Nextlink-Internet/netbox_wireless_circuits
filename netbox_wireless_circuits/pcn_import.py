@@ -25,21 +25,33 @@ from .models import (
 logger = logging.getLogger("netbox_wireless_circuits")
 
 PROFILE_FIELDS = {
-    "pcn_number", "rcn_number", "job_number", "licensee", "call_sign",
-    "radio_service", "station_class", "frequency_band", "channel_plan_mhz",
+    "pcn_date", "pcn_number", "rcn_number", "job_number",
+    "registration_status", "registration_date", "registration_completion_date",
+    "licensee", "call_sign", "radio_service", "station_class",
+    "frequency_band", "channel_plan_mhz",
     "path_length_km", "path_length_miles", "atmospheric_loss_db",
     "free_space_loss_db", "receiver_threshold_dbm",
-    "carrier_count", "radio_configuration",
+    "carrier_count", "radio_configuration", "source_document", "notes",
 }
 ENDPOINT_FIELDS = {
     "side", "pcn_site_name", "county_state", "latitude", "longitude",
-    "tx_frequency_mhz", "antenna_code", "antenna_manufacturer", "antenna_model",
+    "ground_elevation_m", "ground_elevation_ft", "asr_number",
+    "structure_height_agl_m", "structure_height_agl_ft", "path_azimuth_deg",
+    "antenna_code", "antenna_manufacturer", "antenna_model",
     "antenna_diameter_ft", "antenna_gain_dbi", "antenna_beamwidth_deg",
-    "path_azimuth_deg", "radio_model", "polarization",
+    "antenna_tilt_deg", "centerline_agl_m", "centerline_agl_ft",
+    "transmit_mode", "radio_code", "radio_manufacturer", "radio_model",
+    "radio_description", "stability_percent",
+    "nominal_power_dbm", "nominal_rsl_dbm", "coordinated_power_dbm",
+    "coordinated_rsl_dbm", "maximum_power_dbm", "maximum_rsl_dbm",
+    "fixed_loss_common_db", "fixed_loss_tx_db", "fixed_loss_rx_db",
+    "tx_frequency_mhz", "polarization",
 }
 TARGET_FIELDS = {
-    "direction", "modulation", "data_rate_kbps", "max_power_dbm", "eirp_dbm",
-    "expected_rsl_dbm", "emission_designator", "radio_model",
+    "direction", "modulation", "modulation_rank", "data_rate_kbps",
+    "max_power_dbm", "eirp_dbm", "expected_rsl_dbm",
+    "min_acceptable_rsl_dbm", "max_acceptable_rsl_dbm",
+    "emission_designator", "radio_model",
 }
 
 # Empty template for one path; a PDF may contain several.
@@ -140,18 +152,23 @@ def _attach_pcn_document(profile, pdf_bytes, pdf_name):
 
 @transaction.atomic
 def create_circuit_and_profile(cid, provider, circuit_type, data, status="active",
-                               pdf_bytes=None, pdf_name=None):
+                               pdf_bytes=None, pdf_name=None, extra_profile=None):
     """
     Create a NEW circuit and its wireless profile (+ endpoints + targets) from a
     single path's PCN data, in one atomic step. Returns ``(circuit, profile)``.
     ``pdf_bytes`` (the source PCN PDF) is retained on the profile if provided.
+    ``extra_profile`` is a dict of additional profile fields to stamp directly
+    (e.g. ``import_source`` / ``import_key`` from a bulk CSV import).
     """
     from circuits.models import Circuit
 
     circuit = Circuit.objects.create(
         cid=cid, provider=provider, type=circuit_type, status=status,
     )
-    profile = create_from_extraction(circuit, data, pdf_bytes=pdf_bytes, pdf_name=pdf_name)
+    profile = create_from_extraction(
+        circuit, data, pdf_bytes=pdf_bytes, pdf_name=pdf_name,
+        extra_profile=extra_profile,
+    )
     return circuit, profile
 
 
@@ -182,11 +199,13 @@ def create_paths(provider, circuit_type, data, status="active",
 
 
 @transaction.atomic
-def create_from_extraction(circuit, data, pdf_bytes=None, pdf_name=None):
+def create_from_extraction(circuit, data, pdf_bytes=None, pdf_name=None,
+                           extra_profile=None):
     """
     Create a profile (+ endpoints + modulation targets) on ``circuit`` from a
     PCN data dict. Atomic: any model validation error rolls the whole thing back.
-    Returns the created :class:`WirelessLicenseProfile`.
+    Returns the created :class:`WirelessLicenseProfile`. ``extra_profile`` stamps
+    additional profile fields (e.g. import provenance) outside the JSON whitelist.
     """
     prof_fields = _filtered(data.get("profile"), PROFILE_FIELDS)
     # Derive the N+0 label from the carrier count when the document didn't state
@@ -196,6 +215,8 @@ def create_from_extraction(circuit, data, pdf_bytes=None, pdf_name=None):
             prof_fields["radio_configuration"] = f"{int(prof_fields['carrier_count'])}+0"
         except (TypeError, ValueError):
             pass
+    if extra_profile:
+        prof_fields.update(extra_profile)
     # created_via_import marks the circuit as wizard-created so deleting the
     # profile later also removes the circuit it created (see signals).
     profile = WirelessLicenseProfile.objects.create(
