@@ -46,6 +46,19 @@
           </tr>
           <tr><th scope="row">Frequency band</th><td>{{ profile.get_frequency_band_display|placeholder }}</td></tr>
           <tr><th scope="row">Channel plan (MHz)</th><td>{{ profile.channel_plan_mhz|placeholder }}</td></tr>
+          <tr>
+            <th scope="row">Path length</th>
+            <td>
+              {% if profile.path_length_km or profile.path_length_miles %}
+                {{ profile.path_length_km|placeholder }} km / {{ profile.path_length_miles|placeholder }} mi
+              {% else %}{{ ''|placeholder }}{% endif %}
+            </td>
+          </tr>
+          <tr><th scope="row">Free space / atmospheric loss (dB)</th><td>{{ profile.free_space_loss_db|placeholder }} / {{ profile.atmospheric_loss_db|placeholder }}</td></tr>
+          <tr>
+            <th scope="row">Radio configuration</th>
+            <td>{% if profile.radio_configuration %}{% badge profile.radio_configuration bg_color="purple" %}{% else %}{{ ''|placeholder }}{% endif %}{% if profile.carrier_count %} <span class="text-muted">({{ profile.carrier_count }} carrier{{ profile.carrier_count|pluralize }})</span>{% endif %}</td>
+          </tr>
           <tr><th scope="row">PCN number</th><td>{{ profile.pcn_number|placeholder }}</td></tr>
           <tr><th scope="row">RCN / Link Registration</th><td>{{ profile.rcn_number|placeholder }}</td></tr>
           <tr><th scope="row">Licensee</th><td>{{ profile.licensee|placeholder }}</td></tr>

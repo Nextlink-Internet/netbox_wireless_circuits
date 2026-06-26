@@ -9,6 +9,7 @@ the change report and decides). New-link creation reuses the PCN importer's atom
 create path, so each link is all-or-nothing and a bad row can't abort the batch.
 """
 import logging
+import re
 from decimal import Decimal, InvalidOperation
 
 from circuits.models import Circuit, CircuitType
@@ -18,6 +19,41 @@ from .. import pcn_import
 from ..models import WirelessLicenseProfile
 
 logger = logging.getLogger("netbox_wireless_circuits")
+
+
+def _normalize_site_name(name):
+    """Uppercase, strip non-alphanumerics — so 'BENBROOK LAKE' == 'BENBROOKLAKE'."""
+    return re.sub(r"[^A-Z0-9]", "", (name or "").upper())
+
+
+def _load_site_map():
+    """
+    Map normalized NetBox Site name -> Site, for matching coordinator site names
+    to existing sites. Built once per import. Ambiguous normalized names keep the
+    first match (rare); unmatched coordinator sites simply stay unlinked.
+    """
+    from dcim.models import Site
+
+    site_map = {}
+    for site in Site.objects.all().only("id", "name"):
+        key = _normalize_site_name(site.name)
+        if key:
+            site_map.setdefault(key, site)
+    return site_map
+
+
+def _resolve_endpoint_sites(parsed, site_map):
+    """
+    Best-effort: link each endpoint to a NetBox Site by matching its
+    ``pcn_site_name`` (normalized). A matched Site is injected as ``netbox_site``
+    so the create path also builds the native A/Z CircuitTermination.
+    """
+    for ep in parsed.data.get("endpoints", []):
+        if not ep or ep.get("netbox_site"):
+            continue
+        site = site_map.get(_normalize_site_name(ep.get("pcn_site_name")))
+        if site is not None:
+            ep["netbox_site"] = site
 
 # Built-in fallback mapping (operational circuit status per FCC license status),
 # used only if the operator-editable WirelessImportStatusMap table is empty.
@@ -187,6 +223,7 @@ def run_import(source, file_obj, *, provider, circuit_type=None, status="active"
     """
     effective_type = _resolve_circuit_type(source, circuit_type)
     status_map = _load_status_map()
+    site_map = _load_site_map()
     report = {
         "source": source.name,
         "total": 0,
@@ -194,6 +231,8 @@ def run_import(source, file_obj, *, provider, circuit_type=None, status="active"
         "changed": [],
         "unchanged": 0,
         "errors": [],
+        "sites_linked": 0,
+        "sites_unmatched": 0,
     }
     for parsed in source.iter_links(file_obj):
         report["total"] += 1
@@ -205,6 +244,13 @@ def run_import(source, file_obj, *, provider, circuit_type=None, status="active"
                 .first()
             )
             if existing is None:
+                _resolve_endpoint_sites(parsed, site_map)
+                for ep in parsed.data.get("endpoints", []):
+                    if ep.get("pcn_site_name"):
+                        if ep.get("netbox_site"):
+                            report["sites_linked"] += 1
+                        else:
+                            report["sites_unmatched"] += 1
                 link_status = _derive_status(
                     parsed.data.get("profile"), status, status_map
                 )

@@ -68,6 +68,10 @@ class Command(BaseCommand):
             f"{len(report['created'])} created, {len(report['changed'])} changed, "
             f"{report['unchanged']} unchanged, {len(report['errors'])} error(s)."
         ))
+        self.stdout.write(
+            f"  sites: {report.get('sites_linked', 0)} linked, "
+            f"{report.get('sites_unmatched', 0)} unmatched (left blank)."
+        )
         for ch in report["changed"]:
             self.stdout.write(f"  changed: {ch['cid']} ({len(ch['changes'])} field(s))")
         for err in report["errors"]:

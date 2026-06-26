@@ -17,6 +17,7 @@
       </td>
     </tr>
     <tr><th scope="row">Band</th><td>{{ profile.get_frequency_band_display|placeholder }}</td></tr>
+    <tr><th scope="row">Path length</th><td>{% if profile.path_length_km or profile.path_length_miles %}{{ profile.path_length_km|placeholder }} km / {{ profile.path_length_miles|placeholder }} mi{% else %}{{ ''|placeholder }}{% endif %}</td></tr>
     <tr><th scope="row">RCN</th><td>{{ profile.rcn_number|placeholder }}</td></tr>
   </table>
   <div class="card-footer text-end">

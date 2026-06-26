@@ -83,6 +83,8 @@ class WirelessCSVImportJob(JobRunner):
                 "changed": len(report["changed"]),
                 "unchanged": report["unchanged"],
                 "errors": len(report["errors"]),
+                "sites_linked": report.get("sites_linked", 0),
+                "sites_unmatched": report.get("sites_unmatched", 0),
             },
             "report": report,
         }

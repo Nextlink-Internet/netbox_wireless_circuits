@@ -291,6 +291,31 @@ class EngineIdempotencyTests(TestCase):
         self._run([dict(BASE_ROW)])  # _run passes no status -> default "active"
         self.assertEqual(Circuit.objects.get().status, "active")
 
+    def test_endpoint_site_matched_and_termination_created(self):
+        from circuits.models import CircuitTermination
+        from dcim.models import Site
+
+        # site1 = "TX-THROCKMORTON-WE-2" (side A); NetBox site differs only by
+        # punctuation/spacing to exercise the normalized match.
+        site = Site.objects.create(name="TXTHROCKMORTONWE2", slug="txthrockmortonwe2")
+        self._run([dict(BASE_ROW)])
+        profile = WirelessLicenseProfile.objects.get()
+        ep_a = profile.endpoints.get(side="A")
+        self.assertEqual(ep_a.netbox_site, site)
+        ct = CircuitTermination.objects.get(circuit=profile.circuit, term_side="A")
+        self.assertEqual(ct._site, site)
+
+    def test_unmatched_site_left_blank(self):
+        # No matching NetBox site -> endpoint stays unlinked, no termination.
+        from circuits.models import CircuitTermination
+
+        self._run([dict(BASE_ROW)])
+        profile = WirelessLicenseProfile.objects.get()
+        self.assertIsNone(profile.endpoints.get(side="A").netbox_site)
+        self.assertFalse(
+            CircuitTermination.objects.filter(circuit=profile.circuit).exists()
+        )
+
     def test_two_distinct_links_create_two_circuits(self):
         row2 = dict(BASE_ROW, **{
             "site1": "MN-WINDOM-SW-1", "site2": "MN-OKABENA-SW-1",
