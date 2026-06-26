@@ -15,6 +15,12 @@ from utilities.views import ViewTab, register_model_view
 from . import filtersets, forms, models, pcn_import, tables
 from .nbxsync_sync import nbxsync_available, sync_enabled, sync_profile
 
+# Standard header actions for this plugin's list views: Add, Export, Delete only.
+# Excludes NetBox 4.6's default BulkImport / BulkEdit / BulkRename actions, which
+# render dead "href=None" buttons here — the plugin wires importers via path()
+# (not the model-view registry NetBox reads) and has no bulk-edit/rename views.
+DEFAULT_LIST_ACTIONS = (AddObject, BulkExport, BulkDelete)
+
 
 def _pcn_endpoint_specs(data):
     """
@@ -308,11 +314,9 @@ class WirelessLicenseProfileListView(generic.ObjectListView):
     queryset = models.WirelessLicenseProfile.objects.prefetch_related("endpoints")
     table = tables.WirelessLicenseProfileTable
     filterset = filtersets.WirelessLicenseProfileFilterSet
-    # Drop the default BulkImport action (its URL doesn't resolve for this
-    # plugin's path-wired view) and the unused bulk-edit/rename actions; the
-    # header gets an "Import" button to the unified import hub instead (see the
-    # custom template's extra_controls block).
-    actions = (AddObject, BulkExport, BulkDelete)
+    # Add/Export/Delete only; the header gets a custom "Import" button to the
+    # unified import hub instead (see the template's extra_controls block).
+    actions = DEFAULT_LIST_ACTIONS
     template_name = "netbox_wireless_circuits/wirelesslicenseprofile_list.html"
 
 
@@ -347,6 +351,7 @@ class WirelessCircuitEndpointListView(generic.ObjectListView):
     queryset = models.WirelessCircuitEndpoint.objects.all()
     table = tables.WirelessCircuitEndpointTable
     filterset = filtersets.WirelessCircuitEndpointFilterSet
+    actions = DEFAULT_LIST_ACTIONS
 
 
 class WirelessCircuitEndpointEditView(generic.ObjectEditView):
@@ -375,9 +380,8 @@ class WirelessModulationTargetListView(generic.ObjectListView):
     queryset = models.WirelessModulationTarget.objects.all()
     table = tables.WirelessModulationTargetTable
     filterset = filtersets.WirelessModulationTargetFilterSet
-    # Same as profiles: drop the unresolved default BulkImport/bulk-edit actions.
     # The CID-keyed modulation importer remains at its own URL.
-    actions = (AddObject, BulkExport, BulkDelete)
+    actions = DEFAULT_LIST_ACTIONS
 
 
 class WirelessModulationTargetEditView(generic.ObjectEditView):
@@ -423,6 +427,7 @@ class WirelessBandToleranceView(generic.ObjectView):
 class WirelessBandToleranceListView(generic.ObjectListView):
     queryset = models.WirelessBandTolerance.objects.all()
     table = tables.WirelessBandToleranceTable
+    actions = DEFAULT_LIST_ACTIONS
 
 
 class WirelessBandToleranceEditView(generic.ObjectEditView):
@@ -450,6 +455,7 @@ class WirelessImportStatusMapView(generic.ObjectView):
 class WirelessImportStatusMapListView(generic.ObjectListView):
     queryset = models.WirelessImportStatusMap.objects.all()
     table = tables.WirelessImportStatusMapTable
+    actions = DEFAULT_LIST_ACTIONS
 
 
 class WirelessImportStatusMapEditView(generic.ObjectEditView):
@@ -482,6 +488,7 @@ class WirelessAntennaView(generic.ObjectView):
 class WirelessAntennaListView(generic.ObjectListView):
     queryset = models.WirelessAntenna.objects.all()
     table = tables.WirelessAntennaTable
+    actions = DEFAULT_LIST_ACTIONS
 
 
 class WirelessAntennaEditView(generic.ObjectEditView):
@@ -536,6 +543,7 @@ class WirelessLLMModelDiscoveryView(View):
 class WirelessLLMProviderListView(generic.ObjectListView):
     queryset = models.WirelessLLMProvider.objects.all()
     table = tables.WirelessLLMProviderTable
+    actions = DEFAULT_LIST_ACTIONS
 
 
 class WirelessLLMProviderEditView(generic.ObjectEditView):
@@ -564,6 +572,7 @@ class WirelessTargetExceptionListView(generic.ObjectListView):
     queryset = models.WirelessTargetException.objects.all()
     table = tables.WirelessTargetExceptionTable
     filterset = filtersets.WirelessTargetExceptionFilterSet
+    actions = DEFAULT_LIST_ACTIONS
 
 
 class WirelessTargetExceptionEditView(generic.ObjectEditView):
