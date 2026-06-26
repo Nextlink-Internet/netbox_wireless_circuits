@@ -12,8 +12,26 @@ from decimal import Decimal, InvalidOperation
 
 from ..choices import FrequencyBandChoices, ModulationChoices
 
-_MOD_VALUES = set(ModulationChoices.values)
-_BAND_VALUES = set(FrequencyBandChoices.values)
+
+def _choice_values(choiceset):
+    """
+    Return the set of value strings for a NetBox ChoiceSet. ``.values`` is a
+    method on NetBox's ChoiceSet (not an iterable attribute), so fall back to
+    deriving values from ``CHOICES`` to stay robust across NetBox versions.
+    """
+    values = getattr(choiceset, "values", None)
+    if callable(values):
+        try:
+            return set(values())
+        except TypeError:
+            pass
+    elif values:
+        return set(values)
+    return {choice[0] for choice in choiceset.CHOICES}
+
+
+_MOD_VALUES = _choice_values(ModulationChoices)
+_BAND_VALUES = _choice_values(FrequencyBandChoices)
 
 
 @dataclass
