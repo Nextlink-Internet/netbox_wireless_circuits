@@ -160,7 +160,7 @@ class WirelessLicenseProfileSerializer(NetBoxModelSerializer):
             "path_length_km", "path_length_miles",
             "atmospheric_loss_db", "free_space_loss_db",
             "receiver_threshold_dbm", "source_document", "pcn_document", "notes",
-            "created_via_import",
+            "created_via_import", "import_source", "import_key", "import_link_id",
             "endpoints", "modulation_targets",
             "tags", "custom_fields", "created", "last_updated",
         )
