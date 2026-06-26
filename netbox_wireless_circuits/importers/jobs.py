@@ -7,8 +7,8 @@ import view stashes the uploaded file and enqueues this job; netbox-rq runs it a
 the result report is stored on the Job (visible on the job's detail page).
 """
 import logging
-import os
 
+from django.core.files.storage import default_storage
 from netbox.jobs import JobRunner
 
 from .base import get_source
@@ -22,7 +22,7 @@ class WirelessCSVImportJob(JobRunner):
     class Meta:
         name = "Wireless CSV import"
 
-    def run(self, *args, source_name=None, file_path=None, provider_id=None,
+    def run(self, *args, source_name=None, file_name=None, provider_id=None,
             circuit_type_id=None, status="active", apply_changes=False, **kwargs):
         from circuits.models import CircuitType, Provider
 
@@ -35,8 +35,9 @@ class WirelessCSVImportJob(JobRunner):
             CircuitType.objects.get(pk=circuit_type_id) if circuit_type_id else None
         )
 
+        # The upload lives in MEDIA storage (shared with the web process).
         try:
-            with open(file_path, "rb") as fh:
+            with default_storage.open(file_name, "rb") as fh:
                 report = run_import(
                     source, fh,
                     provider=provider, circuit_type=circuit_type, status=status,
@@ -45,8 +46,8 @@ class WirelessCSVImportJob(JobRunner):
                 )
         finally:
             try:
-                os.unlink(file_path)
-            except OSError:
+                default_storage.delete(file_name)
+            except Exception:  # pragma: no cover - best-effort cleanup
                 pass
 
         # Persist a compact result summary on the job for the detail page.

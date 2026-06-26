@@ -1,7 +1,5 @@
 import base64
 import json
-import os
-import tempfile
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -110,19 +108,21 @@ class WirelessImportHubView(View):
                 "form": form, "sources": all_sources(),
             })
 
-        # Persist the upload to a temp file the rq worker can read, then enqueue.
+        # Stash the upload in MEDIA storage (shared between the web process and
+        # the rq worker) — NOT /tmp, which systemd PrivateTmp isolates per service.
+        from django.core.files.storage import default_storage
+
         upload = form.cleaned_data["file"]
-        fd, path = tempfile.mkstemp(prefix="wireless_csv_import_", suffix=".csv")
-        with os.fdopen(fd, "wb") as fh:
-            for chunk in upload.chunks():
-                fh.write(chunk)
+        stored_name = default_storage.save(
+            f"netbox-wireless-circuits/imports/{upload.name}", upload
+        )
 
         source = get_source(form.cleaned_data["source"])
         circuit_type = form.cleaned_data.get("circuit_type")
         job = WirelessCSVImportJob.enqueue(
             user=request.user,
             source_name=form.cleaned_data["source"],
-            file_path=path,
+            file_name=stored_name,
             provider_id=form.cleaned_data["provider"].pk,
             circuit_type_id=circuit_type.pk if circuit_type else None,
             status=form.cleaned_data.get("status") or "active",
